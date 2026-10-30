@@ -20,7 +20,7 @@ All airport codes are IATA codes (see 7.6). Primary keys yes, foreign keys no (s
 | `state` | `CA` | Used for region filters such as New England |
 | `lat`, `lon` | 37.62, -122.38 | Location |
 | `size_class` | large / medium / small | OurAirports label |
-| `runway_count` | 4 | Stand-in for physical capacity |
+| `runway_count` | 4 | Open runways only (OurAirports `closed` flag); stand-in for physical capacity |
 | `longest_runway_ft` | 11870 | |
 
 **`enplanements`**: one row per airport per year (2023–2025). Source: FAA.
@@ -37,7 +37,7 @@ All airport codes are IATA codes (see 7.6). Primary keys yes, foreign keys no (s
 |---|---|
 | `year`, `month` | |
 | `origin`, `dest`, `dest_country` | Route; `dest_country` gives international share |
-| `carrier` | Airline |
+| `carrier`, `carrier_name` | Airline code and name |
 | `aircraft_type` | |
 | `departures`, `seats`, `passengers`, `freight_lbs` | Monthly totals for the route |
 | `distance_mi` | Used for long-haul (3,000+ miles) |

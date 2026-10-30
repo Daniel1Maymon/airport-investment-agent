@@ -1,6 +1,6 @@
 # Airport Investment Intelligence Agent: Decision Log
 
-This log records the design decisions made before writing any code. Project overview and status: [../CLAUDE.md](../CLAUDE.md). System overview: [architecture.md](architecture.md). For each one it gives the options considered, the tradeoffs, and the reason for the choice. Decisions still open are listed at the end.
+This log records the design decisions made before writing any code. Project overview: [../README.md](../README.md); short design document: [../DESIGN.md](../DESIGN.md). System overview: [architecture.md](architecture.md). For each one it gives the options considered, the tradeoffs, and the reason for the choice. Decisions still open are listed at the end.
 
 **Task:** Build an AI chat agent that helps a US airport-modernization investment firm find airports where renovation will be most profitable, based on growth in flight and passenger capacity. Deliverables: source code and a short design document (scoring method, key tradeoffs, where AI is used). Timeframe: 24 hours.
 
@@ -275,6 +275,8 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 ### 7.18 Congestion: the strain half of the score
 **Decision:** "congestion" = departures per runway, airspace delay per flight, taxi-out time, % of flights late, cancellation rate, each with its national grade. The summary number is the **strain half of the ranking score** (S1–S4).
 
+**Runway load counts all departures, passenger and cargo**, because cargo planes use the same runways (54% of Anchorage departures are cargo).
+
 **Why:** no new formula. If congestion (question 2) used different rules from the ranking (question 1), the two answers could contradict each other.
 
 ### 7.19 Safety against prompt injection
@@ -302,7 +304,7 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 
 **Why:** streaming feels faster but makes the backend, the page and saving the chat more complex. The exam favours clarity over polish. Future work.
 
-**Also decided:** one message at a time per chat (Send disabled while waiting, plus an in-memory lock on the server), questions up to 1,000 characters, 60 seconds per turn.
+**Also decided:** one message at a time per chat (Send disabled while waiting, plus an in-memory lock on the server), questions up to 1,000 characters, answers up to about 800 words (a token limit on each AI call: enough for a comparison with caveats, too short for free long-form writing), 60 seconds per turn.
 
 ### 7.24 Automatic tests for our own code (`pytest`)
 **Decision:** `pytest` on a tiny made-up dataset where the right answer is known, for four areas: the scoring and ranking, the unmet-demand math (e.g. 900 passengers, 1,000 seats, 80% target → 125 missing seats), the name resolver ("Santa Ana" → SNA, "Atlantis" → not found), and the tool setting checks (e.g. `top_n=500` refused). No AI is involved.

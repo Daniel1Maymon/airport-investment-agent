@@ -34,13 +34,15 @@ Growth without strain means the airport still has room. Strain without growth ma
 | S1 | How full planes are (load factor) | passengers ÷ seats, departures in 2025 | `route_traffic` | 20% |
 | S2 | Airport/airspace delay | NAS delay minutes ÷ arriving flights, 2025 | `airport_delays` | 15% |
 | S3 | Taxi-out time | average minutes from gate to takeoff, 2025 | `airport_delays` | 10% |
-| S4 | Runway load | departures in 2025 ÷ number of runways | `route_traffic`, `airports` | 15% |
+| S4 | Runway load | all departures in 2025 (passenger and cargo) ÷ number of open runways | `route_traffic`, `airports` | 15% |
 
 **Why strain weighs more (60%):** growth only matters when the airport is running out of room.
 
 **NAS** (National Airspace System) is the delay cause meaning "the airport or its airspace was too busy", for example too many planes landing at once or a closed runway. It is the only delay cause that points at missing capacity; the others are the airline's fault, weather, a late incoming plane, or security.
 
 **Limit of S3:** the data gives only the total time from gate to takeoff. Part of it is driving to the runway, not waiting in line, so large airports score higher partly because they are large. That is why S3 has the smallest weight and is never used alone.
+
+**Why S4 counts cargo flights:** cargo planes use the same runways. At Anchorage 54% of departures are cargo, so counting passenger flights only would hide most of its runway load.
 
 **Why S2 is per flight, not a share:** "NAS share of all delay" makes a quiet airport with 3 delays a year, 2 of them NAS, look 67% congested. Minutes per flight measures how much congestion each passenger actually feels.
 
@@ -68,7 +70,7 @@ The weights are **settings**. A follow-up such as "what if growth matters more?"
 
 ## 5. Where the score lives
 
-**Nothing is stored in the database.** When a question needs a ranking, Python builds a temporary table, sends it to the AI, and discards it:
+**Nothing is stored in the database.** When a question needs a ranking, Python builds a temporary table, sends the requested rows to the AI (at most 25, see [tools.md](tools.md)), and discards it:
 
 | Column group | Example columns | Purpose |
 |---|---|---|

@@ -56,8 +56,7 @@ design. The flow is the design.
 ```
  1. Chat page sends   { conversation_id, message }
  2. Backend loads the earlier steps of this chat from chat.sqlite
- 3. AI reads the question and asks for tools:
-       find_airports   { text: "SFO" }                  → SFO
+ 3. AI reads the question and asks for a tool:
        unmet_demand    { airports: ["SFO"] }
  4. Python checks the settings and runs SQL written in advance:
        per month of 2025:  missing seats = passengers ÷ target − seats (min 0)

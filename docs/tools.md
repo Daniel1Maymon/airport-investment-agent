@@ -37,7 +37,7 @@ Every measure is calculated per airport for **2025** unless stated, and can be s
 | Crowding | `load_factor` (S1) | Passengers ÷ seats | `route_traffic` |
 | | `nas_delay_per_flight` (S2) | Airspace/airport delay minutes ÷ arriving flights | `airport_delays` |
 | | `taxi_out_min` (S3) | Average minutes from gate to takeoff | `airport_delays` |
-| | `departures_per_runway` (S4) | Departures ÷ open runways | `route_traffic`, `airports` |
+| | `departures_per_runway` (S4) | All departures (passenger and cargo) ÷ open runways | `route_traffic`, `airports` |
 | | `late_share` | Departures 15+ minutes late ÷ departures | `airport_delays` |
 | | `cancel_rate` | Cancelled ÷ scheduled departures | `airport_delays` |
 | Flight mix | `long_haul_share` | Passenger departures of 3,000+ miles (adjustable) ÷ passenger departures | `route_traffic` |
@@ -65,6 +65,8 @@ Finds airports in our list.
 | `near_airport`, `within_miles` | Airports within a distance of another airport in our list |
 
 Output: code, name, city, state, size. Several matches → all are returned and the AI picks one. No match → "airport not found". This is the name resolver ([agent.md](agent.md)).
+
+Every other tool also accepts an airport code or an exact name, and Python turns it into a code before running (agent.md, step 3). So "SFO" needs no `find_airports` call first; `find_airports` is for unclear names ("LA"), places and regions.
 
 **Regions** use the US Census Bureau regions and divisions (e.g. *New England* = CT, ME, MA, NH, RI, VT; *South*, *Midwest*, *West*, *Pacific*, …), so every region has a published, checkable definition.
 
