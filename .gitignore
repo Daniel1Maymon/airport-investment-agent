@@ -1,0 +1,23 @@
+# Data (downloaded or built; never committed)
+data/
+*.csv
+*.zip
+*.duckdb
+*.duckdb.wal
+chat.sqlite
+*.sqlite
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+
+# Exam material and internal working notes
+FDE EXAM.pdf
+CLAUDE.md
+
+.DS_Store
