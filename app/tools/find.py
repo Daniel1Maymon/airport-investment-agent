@@ -5,7 +5,8 @@ What it is:   The find_airports tool: filters our airport list by name, city or 
 Why we need:  People name places, not codes ("LA", "New England"). This lists the matching
               airports, so the AI picks codes from our list and never guesses one.
 Used by:      app/tools/__init__.py (the import registers the tool); the AI calls it
-              through run_tool. app/tools/rank.py (the Region and Size setting types).
+              through run_tool. app/tools/rank.py (the Region and Size setting types),
+              app/tools/trend.py (Region).
               tests: test_step09_resolver.py, test_step10_rank_profile.py.
 Uses:         app/tools/base.py, app/tools/resolver.py, app/refusals.py; the tables
               airports and enplanements (2025 hub size), read through the resolver.
