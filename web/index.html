@@ -118,66 +118,76 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
       .user { max-width: 92%; }
     }
 
-    /* ---------- Welcome screen and method panel (P105) ---------- */
-    :root { --navy: #13263f; --sign: #f4b400; --paper: #eef1f4; }
-    body { background: var(--paper); }
-    header, .composer { background: var(--paper); }
-    .serif { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; }
-    header h1 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-size: 21px; color: var(--navy); }
+    /* ---------- Modern look, welcome screen and method panel (P105) ---------- */
+    :root { --navy: #0f1f35; --sign: #f5b301; --paper: #ffffff; --soft: #f4f6f9; --line: #e6e9ee; --accent: #0f1f35; }
+    body { background: var(--paper); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif; }
+    header, .composer { background: rgba(255, 255, 255, 0.92); backdrop-filter: saturate(1.4) blur(10px); }
+    header { border-bottom: 1px solid var(--line); padding: 14px 0; }
+    header h1 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; color: var(--navy); display: flex; align-items: center; gap: 10px; }
+    header h1::before { content: ""; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--sign) 0 50%, var(--navy) 50% 100%); flex: none; }
+    .tagline { display: none; }
     .header-actions { display: flex; gap: 8px; }
-    button.link { background: none; border: none; color: var(--navy); padding: 9px 6px; text-decoration: underline; text-underline-offset: 3px; }
-    button:focus-visible, summary:focus-visible { outline: 3px solid var(--sign); outline-offset: 2px; }
+    button { border-radius: 999px; font-weight: 550; padding: 8px 16px; font-size: 14.5px; }
+    button.secondary { background: var(--soft); border-color: var(--soft); color: var(--navy); }
+    button.secondary:hover:not(:disabled) { background: #e9edf2; filter: none; }
+    button.link { background: none; border: none; color: #4a5568; padding: 8px 10px; }
+    button.link:hover { color: var(--navy); filter: none; }
+    #send { background: var(--navy); border-color: var(--navy); }
+    button:focus-visible, summary:focus-visible { outline: 3px solid rgba(245, 179, 1, 0.6); outline-offset: 2px; }
 
-    #welcome { padding: 36px 0 16px; color: var(--navy); }
+    #welcome { padding: 56px 0 16px; color: var(--navy); }
     #welcome[hidden] { display: none; }
-    #welcome h2 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; font-size: clamp(30px, 6vw, 44px); line-height: 1.1; letter-spacing: -0.015em; margin: 0 0 16px; max-width: 18ch; }
-    .lead { font-size: 18px; line-height: 1.6; max-width: 60ch; margin: 0 0 32px; color: #2c3e55; }
-    .section-title { font-size: 15px; font-weight: 650; margin: 0 0 12px; color: var(--navy); }
+    #welcome h2 { font-weight: 750; font-size: clamp(32px, 6vw, 48px); line-height: 1.05; letter-spacing: -0.035em; margin: 0 0 14px; max-width: 16ch; }
+    .lead { font-size: 18px; line-height: 1.55; max-width: 52ch; margin: 0 0 36px; color: #4a5568; }
+    .section-title { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: #6b7685; }
 
-    /* The one bold element: the score as an airfield sign */
-    .sign { display: grid; grid-template-columns: 40fr 60fr; border-radius: 6px; overflow: hidden; border: 3px solid var(--navy); margin-bottom: 10px; }
-    .sign > div { padding: 12px 16px; font-weight: 700; font-size: 17px; letter-spacing: 0.02em; }
-    .sign .demand { background: var(--sign); color: var(--navy); }
-    .sign .strain { background: var(--navy); color: var(--sign); }
-    .sign b { font-size: 26px; margin-right: 6px; font-variant-numeric: tabular-nums; }
-    .sign-parts { display: grid; grid-template-columns: 40fr 60fr; gap: 0 16px; font-size: 14.5px; color: #2c3e55; margin-bottom: 32px; }
-    .sign-parts ul { margin: 0; padding-left: 18px; }
-    .sign-parts li { margin-bottom: 3px; }
-    .sign-note { font-size: 14.5px; color: #4a5b70; max-width: 64ch; margin: 0 0 36px; }
+    /* The one bold element: the score split, in airfield-sign colours */
+    .score { display: grid; grid-template-columns: 40fr 60fr; gap: 6px; margin-bottom: 40px; }
+    .score > div { border-radius: 18px; padding: 20px 22px; }
+    .score .demand { background: var(--sign); color: var(--navy); }
+    .score .strain { background: var(--navy); color: #fff; }
+    .score .pct { font-size: 34px; font-weight: 750; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score .strain .pct { color: var(--sign); }
+    .score .name { font-size: 16px; font-weight: 650; margin: 6px 0 12px; }
+    .score ul { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 1.45; }
+    .score li { margin-top: 5px; }
+    .score .demand li { color: rgba(15, 31, 53, 0.78); }
+    .score .strain li { color: rgba(255, 255, 255, 0.72); }
 
-    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
     .examples button {
-      text-align: left; background: var(--card); color: var(--navy); border: 1px solid #cdd5df; border-left: 4px solid var(--sign);
-      border-radius: 6px; padding: 14px 16px; font-size: 15.5px; line-height: 1.4;
+      text-align: left; background: var(--soft); color: var(--navy); border: 1px solid transparent;
+      border-radius: 14px; padding: 16px 18px; font-size: 15px; font-weight: 500; line-height: 1.4;
+      transition: background 0.15s, border-color 0.15s;
     }
-    .examples button:hover:not(:disabled) { border-color: var(--navy); border-left-color: var(--sign); filter: none; }
-    .examples small { display: block; color: #5f6b7a; font-size: 13px; margin-top: 4px; }
+    .examples button:hover:not(:disabled) { background: #fff; border-color: #d5dbe3; filter: none; }
 
-    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; border-top: 1px solid #d3dae3; padding-top: 24px; font-size: 14.5px; color: #2c3e55; }
-    .facts ul { margin: 0; padding-left: 18px; }
-    .facts li { margin-bottom: 6px; }
-    .facts strong { color: var(--navy); }
+    .more { font-size: 13.5px; color: #6b7685; margin: 0; }
+    button.link.inline { padding: 0; font-size: 13.5px; font-weight: 600; color: var(--navy); }
+    .disclaimer { font-size: 12px; color: #8a94a3; text-align: center; margin: 0 0 12px; }
 
-    .more { font-size: 14px; color: #5f6b7a; margin: 0; }
-    button.link.inline { padding: 0; font-size: 14px; }
-    .disclaimer { font-size: 12.5px; color: #6b7684; text-align: center; margin: 4px 0 0; }
+    /* Chat parts in the same style */
+    .user { background: var(--navy); border-radius: 18px 18px 6px 18px; }
+    .bot { border-radius: 18px; border-color: var(--line); box-shadow: none; }
+    .bot-label { text-transform: none; letter-spacing: 0; font-size: 13px; color: #6b7685; }
+    details.numbers > summary { color: var(--navy); }
+    #message { border-radius: 16px; border-color: #d5dbe3; background: var(--soft); box-shadow: none; }
+    #message:focus { background: #fff; outline: 3px solid rgba(245, 179, 1, 0.35); border-color: #c9a227; }
 
-    dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 10px; padding: 0; color: var(--ink); box-shadow: 0 20px 60px rgba(19, 38, 63, 0.3); }
-    dialog#method::backdrop { background: rgba(19, 38, 63, 0.45); }
-    .method-inner { padding: 28px 30px 24px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
-    .method-inner h2 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-size: 26px; margin: 0 0 8px; color: var(--navy); }
-    .method-inner h3 { font-size: 16px; margin: 22px 0 6px; color: var(--navy); }
-    .method-inner p, .method-inner li { font-size: 15px; }
+    dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 24px 80px rgba(15, 31, 53, 0.28); }
+    dialog#method::backdrop { background: rgba(15, 31, 53, 0.4); backdrop-filter: blur(3px); }
+    .method-inner { padding: 30px 32px 26px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
+    .method-inner h2 { font-size: 26px; font-weight: 750; letter-spacing: -0.025em; margin: 0 0 8px; color: var(--navy); }
+    .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; color: var(--navy); }
+    .method-inner p, .method-inner li { font-size: 15px; color: #3b4656; }
     .method-inner ul { padding-left: 20px; margin: 0; }
     .method-inner table { font-size: 14px; margin-top: 6px; }
     .method-inner td, .method-inner th { white-space: normal; }
-    .method-close { position: sticky; top: 0; float: right; margin: -8px -10px 0 0; }
+    .method-close { position: sticky; top: 0; float: right; margin: -6px -8px 0 0; }
 
     @media (max-width: 600px) {
-      .examples, .facts, .sign-parts { grid-template-columns: 1fr; }
-      .sign-parts ul + ul { margin-top: 8px; }
-      .sign > div { font-size: 15px; padding: 10px 12px; }
-      .sign b { font-size: 21px; }
+      .examples, .score { grid-template-columns: 1fr; }
+      #welcome { padding-top: 32px; }
       .method-inner { padding: 22px 18px; }
     }
     @media (prefers-reduced-motion: no-preference) {
@@ -205,21 +215,25 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
       <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
 
       <p class="section-title">How airports are scored</p>
-      <div class="sign" role="img" aria-label="Score: demand 40 percent, strain 60 percent">
-        <div class="demand"><b>40%</b>Demand</div>
-        <div class="strain"><b>60%</b>Strain</div>
-      </div>
-      <div class="sign-parts">
-        <ul>
-          <li>Passenger growth since 2019</li>
-          <li>Passenger growth in the last year</li>
-        </ul>
-        <ul>
-          <li>How full the planes are</li>
-          <li>Delays caused by a busy airport or airspace</li>
-          <li>Time from gate to takeoff</li>
-          <li>Flights per runway</li>
-        </ul>
+      <div class="score" role="group" aria-label="How the score is split">
+        <div class="demand">
+          <div class="pct">40%</div>
+          <div class="name">Demand</div>
+          <ul>
+            <li>Passenger growth since 2019</li>
+            <li>Passenger growth in the last year</li>
+          </ul>
+        </div>
+        <div class="strain">
+          <div class="pct">60%</div>
+          <div class="name">Strain</div>
+          <ul>
+            <li>How full the planes are</li>
+            <li>Delays from a busy airport or airspace</li>
+            <li>Time from gate to takeoff</li>
+            <li>Flights per runway</li>
+          </ul>
+        </div>
       </div>
 
       <p class="section-title">Start with a question</p>
