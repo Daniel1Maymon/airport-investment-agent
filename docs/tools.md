@@ -66,7 +66,9 @@ Finds airports in our list.
 
 Output: code, name, city, state, size. Several matches → all are returned and the AI picks one. No match → "airport not found". This is the name resolver ([agent.md](agent.md)).
 
-Every other tool also accepts an airport code or an exact name, and Python turns it into a code before running (agent.md, step 3). So "SFO" needs no `find_airports` call first; `find_airports` is for unclear names ("LA"), places and regions.
+Every other tool also accepts an airport code or a name, and Python turns it into a code before running (agent.md, step 3), using the same name resolver. It must find exactly one airport; if it finds several, the AI gets their codes and picks one (implementation plan P25, P28). So "SFO" or "Santa Ana" needs no `find_airports` call first; `find_airports` is for unclear names ("LA"), places and regions.
+
+**Size** is the FAA hub size of 2025 (implementation plan P26); airports with no FAA hub size for 2025 have no size.
 
 **Regions** use the US Census Bureau regions and divisions (e.g. *New England* = CT, ME, MA, NH, RI, VT; *South*, *Midwest*, *West*, *Pacific*, …), so every region has a published, checkable definition.
 
