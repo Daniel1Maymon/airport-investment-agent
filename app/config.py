@@ -8,6 +8,8 @@ Used by:      app/agent/cli.py.
               app/api.py (`create_app(settings)`, `main_app()`).
 Uses:         environment variables AIRPORTS_DB, CHAT_DB, OPENROUTER_API_KEY,
               OPENROUTER_MODEL, ALLOWED_ORIGIN. No other project file.
+              Online, the Dockerfile sets AIRPORTS_DB and CHAT_DB (P118); the rest are
+              Railway settings (P121).
 Main parts:   Settings - airports_db, chat_db, openrouter_api_key, openrouter_model,
                 allowed_origin.
 Design:       docs/implementation-plan.md "Shared ground rules for the code" (Settings), P8.

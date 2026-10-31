@@ -23,7 +23,8 @@ Design:     Implementation plan P92-P98.
             P98: the reply is read on any HTTP status; only a failed request shows
                  "Could not reach the server. Try again.".
 */
-const BACKEND_URL = "http://localhost:8000";
+// The public backend on Railway (Step 18). For a local run use "http://localhost:8000".
+const BACKEND_URL = "https://backend-production-09fa.up.railway.app";
 
 const REQUEST_TIME_LIMIT_MS = 75000; // a bit longer than the backend's own 60-second limit
 // P106: the page speaks English or Hebrew (right to left). Only the page's own words are

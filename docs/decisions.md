@@ -199,6 +199,8 @@ Checked on 2025 T-100 data, flights that carried passengers:
 
 **Why:** Railway keeps a server running all the time, which suits an agent answer that makes several tool calls. Vercel is built for front-ends. Cost of the split: two deployments, and the backend must allow requests from the Vercel site (CORS).
 
+**How it was built (Step 18):** a `Dockerfile` that copies only the code, the libraries and `airports.duckdb`; chat history on the Railway disk at `/data`, the airport database at `/app` (the disk hides what is under its folder); an upload script that sends only five named items from the laptop, because the database is not in git; and a smoke test that fails when the server is up but refuses questions. Details: [implementation-plan.md](implementation-plan.md) P117–P121.
+
 ### 7.5 Chat page
 **Decision:** Plain HTML + JavaScript on Vercel (fastest option, no build step). Can be upgraded to Next.js later.
 
