@@ -50,6 +50,6 @@ Returns `{"status": "ok"}` when the server is up and the airport database opens.
 - **One message at a time per chat.** The page disables Send while waiting. If a second message for the same chat arrives anyway (e.g. a double click), the backend refuses it with "still answering your last question". One server, so an in-memory lock per chat is enough.
 - **Only our Vercel page may call the backend** (CORS).
 - **Question length:** at most 1,000 characters, refused before the AI sees it.
-- **Answer length:** the AI may write about 800 words per answer at most (a token limit on each AI call). Enough for a comparison with its caveats; too short to make the app a free writing tool.
+- **Answer length:** the AI is told to write at most about 800 words per answer, and each AI call has a token limit (4,000 tokens, which leaves room for the model's hidden "thinking"). Enough for a comparison with its caveats; too short to make the app a free writing tool. If an answer still reaches the limit, a fixed note says it was cut off (implementation plan P61, P68).
 - **Time limit:** a whole turn may take at most 60 seconds; after that the "internal error" message is returned.
 - **Voice** (exam bonus) needs nothing from the API: the browser turns speech into text and the page sends it like a typed message.

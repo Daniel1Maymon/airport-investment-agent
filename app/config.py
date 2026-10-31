@@ -3,7 +3,8 @@
 What it is:   The `Settings` class: the five settings the app needs, each read from an
               environment variable, with a default where one makes sense.
 Why we need:  One place for settings, so no other file reads environment variables itself.
-Used by:      tests: conftest.py, test_step00_setup.py.
+Used by:      app/agent/cli.py.
+              tests: conftest.py, test_step00_setup.py.
               Planned: Step 16 backend API, `create_app(settings)`.
 Uses:         environment variables AIRPORTS_DB, CHAT_DB, OPENROUTER_API_KEY,
               OPENROUTER_MODEL, ALLOWED_ORIGIN. No other project file.

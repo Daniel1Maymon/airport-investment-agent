@@ -3,9 +3,10 @@
 What it is:   The fixed messages the user sees when we can't answer, one per cause.
 Why we need:  Each cause has its own message because the user's next step differs: an AI
               outage must not look like "no data".
-Used by:      app/tools/base.py, app/tools/find.py ("airport_not_found").
-              tests: test_step08_tool_base.py, test_step09_resolver.py.
-              Planned: Step 14 agent loop and Step 16 backend API pick a message by its key.
+Used by:      app/tools/base.py, app/tools/find.py ("airport_not_found"),
+              app/agent/loop.py and app/agent/prompt.py.
+              tests: test_step08_tool_base.py, test_step09_resolver.py, test_step14_agent_loop.py.
+              Planned: Step 16 backend API picks a message by its key.
 Uses:         nothing (plain text only).
 Main parts:   REFUSALS - cause key -> message, one per row of the table in docs/agent.md.
               Refusal - a refusal sent to the user: its cause (a REFUSALS key) and message.
