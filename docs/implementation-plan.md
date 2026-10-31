@@ -18,6 +18,16 @@ Every step has the same sections:
 
 You are building **one step** of this plan. Not more.
 
+### 0. Find your step (from the GitHub repo only)
+The GitHub repo is the only record of progress. A step is **done** when it has been merged into `main` on GitHub. There is no progress file to keep up to date.
+
+1. Run `git fetch origin`.
+2. List the finished steps: `git log origin/main --merges --format=%s | grep -E '^Step [0-9]{2}:'`. Each merge of a finished step has a message that starts with `Step NN:`, where `NN` is **always two digits** (`Step 00:`, `Step 06:`, `Step 13:`). See the Git rules below.
+3. **Your step** is the lowest step number that is not in that list (read `06` as 6). If the list is empty, your step is Step 0.
+4. If a branch for your step already exists (`git branch -a --list '*step-NN-*'`), an earlier session started it and didn't finish, or the user created it. **Stop and tell the user**; don't continue it or delete it on your own. This stop is expected: the user decides what happens to the branch.
+5. If the user named a different step than the one you found, stop and tell the user.
+6. Tell the user in one line which step you are building, then go on.
+
 ### 1. Read first (in full, not in parts)
 1. [CLAUDE.md](../CLAUDE.md): the task and how the user wants to work.
 2. This file, from the top down to "The steps", then **your step only**.
@@ -37,7 +47,7 @@ Why two: if the same agent writes the tests and the code, a misunderstanding end
 
 A sub-agent starts with no memory of this conversation, so each one's instructions must say which step it works on and what to read (section 1 of these instructions, the step, its Design docs).
 
-1. **Main session: create a branch** `step-NN-short-name` (for example `step-06-measures`).
+1. **Main session: update `main`, then create a branch** from it: `git checkout main && git pull origin main`, then `git checkout -b step-NN-short-name`. This makes sure the step starts from every finished step's code. Example branch name: `step-06-measures`.
 2. **Sub-agent 1, test writer:**
    - reads the plan and the design docs (not any code from this step: there is none yet);
    - writes the tests from the step's **Tests (write first)** list, in the listed order, in the listed test file. It can add more tests, and must not skip any listed one;
@@ -81,7 +91,7 @@ The Rules below apply to both sub-agents; include them in their instructions.
   - Before every commit, the whole `pytest` suite passes.
   - Never commit, merge or push without the user's approval.
   - No AI attribution text in commits or PRs.
-  - After the user approves a step, its branch is merged into `main` (with the user's approval), and the next step starts from `main`.
+  - After the user approves a step, its branch is merged into `main` (with the user's approval) with `git merge --no-ff step-NN-short-name -m "Step NN: short name"`, and `main` is pushed to GitHub. The `--no-ff` and the `Step NN:` message (two digits) are required: they are how the next session finds its step (section 0). **Merge on the laptop, never with the "Merge pull request" button on the GitHub website**: the website writes its own message ("Merge pull request #12 from …"), and the next session would think the step is not done. The next step starts from `main`.
 
 ### 5. What "done" means
 A step is done when:
