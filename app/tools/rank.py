@@ -8,15 +8,16 @@ Why we need:  Answers "which airports are strong candidates?", "10 most delayed 
               "rank again with growth at 60%". Python does every number; the AI explains.
 Used by:      app/tools/__init__.py (the import registers the tool); app/tools/profile.py
               (grade_every_measure, about_period, about_assumptions, size_filter_text,
-              DEFAULT_MIN_ENPLANEMENTS); app/tools/trend.py (NOTE_DELAYS, NOTE_TAXI,
+              score_points, NOTE_POINTS, DEFAULT_MIN_ENPLANEMENTS); app/tools/trend.py (NOTE_DELAYS, NOTE_TAXI,
               DELAY_NAMES), app/tools/routes.py (NOTE_AIRLINE), app/tools/delays.py
               (NOTE_DELAYS); app/tools/unmet.py (grade_every_measure, about_assumptions,
               DEFAULT_MIN_ENPLANEMENTS, NOTE_DELAYS, NOTE_TAXI). The AI calls the tool
               through run_tool.
               tests: test_step10_rank_profile.py, test_step11_trend_routes_delays.py,
-              test_step15_question_script.py.
-Uses:         app/measures.py (compute_measures, YEAR), app/scoring.py (score_airports,
-              percentile_grades, DEFAULT_WEIGHTS, WEIGHT_MEASURES), app/tools/base.py,
+              test_step15_question_script.py, test_fix_answer_quality.py.
+Uses:         app/measures.py (compute_measures, MEASURES, YEAR), app/scoring.py
+              (score_airports, percentile_grades, half_points, DEFAULT_WEIGHTS,
+              WEIGHT_MEASURES, DEMAND_KEYS, STRAIN_KEYS), app/tools/base.py (grade_level),
               app/tools/find.py (Region, Size), app/tools/resolver.py (load_airports,
               resolve_region, SIZE_YEAR); tables airports, route_traffic, airport_delays,
               enplanements (read through compute_measures and load_airports).
@@ -25,21 +26,44 @@ Main parts:   DEFAULT_MIN_ENPLANEMENTS, SCORE_SORTS - fixed defaults and the thr
               RankSettings - the tool's settings; weights are checked here (P30).
               grade_every_measure(measures, min_enplanements) - national grade of every
                 measure (P29): measure -> {code: grade}.
-              NOTE_GRADES, NOTE_RANKS - the grade-direction and rank lines (P69, P71).
+              NOTE_GRADES, NOTE_RANKS - the grade-direction and rank lines (P69, P71);
+                NOTE_GRADES also says what the level words mean (P76).
+              NOTE_POINTS - the line that explains demand_points / strain_points (P75).
+              score_points(airport, weights) - demand_points and strain_points of one
+                scored airport (P75).
+              measure_label(sort_by, weights) - the plain name of the sort measure (P78).
               size_filter_text, about_period, about_assumptions - the `about` texts (P35);
                 about_assumptions also adds NOTE_GRADES after the national-grades note.
               rank_airports(con, settings) - the tool; a ToolResult with up to 25 airports.
+                Every row has its score parts and the level word of its grade (P75, P76).
 Design:       docs/tools.md "2. rank_airports"; docs/scoring.md;
-              docs/implementation-plan.md P29-P33, P35, P69-P71.
+              docs/implementation-plan.md P29-P33, P35, P69-P71, P75, P76, P78.
 """
 
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.measures import YEAR, compute_measures
-from app.scoring import DEFAULT_WEIGHTS, WEIGHT_MEASURES, percentile_grades, score_airports
-from app.tools.base import Allowed, MeasureName, SettingsError, StateList, TopN, ToolResult, register
+from app.measures import MEASURES, YEAR, compute_measures
+from app.scoring import (
+    DEFAULT_WEIGHTS,
+    DEMAND_KEYS,
+    STRAIN_KEYS,
+    WEIGHT_MEASURES,
+    half_points,
+    percentile_grades,
+    score_airports,
+)
+from app.tools.base import (
+    Allowed,
+    MeasureName,
+    SettingsError,
+    StateList,
+    TopN,
+    ToolResult,
+    grade_level,
+    register,
+)
 from app.tools.find import Region, Size
 from app.tools.resolver import SIZE_YEAR, load_airports, resolve_region
 
@@ -67,10 +91,18 @@ NOTE_AIRLINE = (
     "top_airline_share uses the airline that operates the flight. A regional airline flying for a major "
     "(e.g. SkyWest for United) counts separately, so dependence on a major can be understated."
 )
-# Says which way a grade points, so the AI doesn't read "high grade" as "good" (P69).
+# Says which way a grade points, so the AI doesn't read "high grade" as "good" (P69),
+# and what the level word next to each grade means (P76).
 NOTE_GRADES = (
     "A grade of 80 means a higher value than 80% of US airports; for strain measures, a higher grade "
-    "means more strain."
+    "means more strain. level = high (grade 67+), middle, or low (grade 33 or less): a high level means "
+    "a high value of that measure, e.g. a low cancel_rate level means fewer cancellations than most US "
+    "airports."
+)
+# Says how to read the score parts, so the AI names the right cause of a score (P75).
+NOTE_POINTS = (
+    "demand_points / strain_points = how many points each measure adds to the demand / strain score; "
+    "they add up to that score. The measure with the most points is the biggest reason for the score."
 )
 # Says which rank is which, so the AI never counts ranks itself (P70, P71).
 NOTE_RANKS = (
@@ -127,6 +159,38 @@ def grade_every_measure(measures, min_enplanements):
     return {name: percentile_grades({code: row.get(name) for code, row in pool.items()}) for name in names}
 
 
+def score_points(airport, weights):
+    """The score parts of one airport (P75): {"demand_points": {...}, "strain_points": {...}}.
+
+    airport: a ScoredAirport from score_airports, or None for an airport under the size
+             filter (it has no score, so both parts are {}).
+    weights: the weights the score was worked out with, one per key D1..S4.
+    """
+    if airport is None:
+        return {"demand_points": {}, "strain_points": {}}
+    return {
+        "demand_points": half_points(airport.grades, weights, DEMAND_KEYS),
+        "strain_points": half_points(airport.grades, weights, STRAIN_KEYS),
+    }
+
+
+def measure_label(sort_by, weights):
+    """The plain name of the measure a ranking is sorted by (P78).
+
+    sort_by: the measure name, e.g. "load_factor" or "score".
+    weights: the custom weights sent by the AI, or None for the default weights.
+    For "score" the label names the two halves' weights, e.g.
+    "Final score (demand 40% + strain 60% by default)".
+    """
+    if sort_by != "score":
+        return MEASURES[sort_by].label
+    in_force = weights or DEFAULT_WEIGHTS
+    demand = sum(in_force.get(k, 0) for k in DEMAND_KEYS)
+    strain = sum(in_force.get(k, 0) for k in STRAIN_KEYS)
+    default = " by default" if weights is None else ""
+    return f"Final score (demand {demand:g}% + strain {strain:g}%{default})"
+
+
 def size_filter_text(min_enplanements):
     return f"airports with {min_enplanements:,}+ enplanements in {YEAR}"
 
@@ -165,12 +229,15 @@ def about_assumptions(min_enplanements, shown):
     "D1..S4, total 100). Returns at most `top_n` airports (default 10, at most 25), each with the value, "
     "its national grade, national_rank (place among all US airports) and region_rank (place among the "
     "airports that match the filters; use it for 'how does X rank in California?'); for 'score' also the "
-    "six measure grades and the flags.",
+    "six measure grades and the flags. Every grade comes with a level word (high, middle, low), and every "
+    "airport with demand_points and strain_points (what each measure adds to the score).",
     RankSettings,
 )
 def rank_airports(con, settings):
     sort_by = settings.sort_by
     min_enpl = settings.min_enplanements
+    # The weights in force, one per key (custom weights only come with sort_by "score").
+    in_force = {k: (settings.weights or DEFAULT_WEIGHTS).get(k, 0) for k in WEIGHT_KEYS}
     measures = compute_measures(con)
     scored = score_airports(measures, weights=settings.weights, min_enplanements=min_enpl)
     by_code = {a.iata: a for a in scored}
@@ -231,6 +298,9 @@ def rank_airports(con, settings):
             "region_rank": region[code],
             "value": values[code],
             "grade": grades.get(code),
+            "level": grade_level(grades.get(code)),
+            # The score parts, for every sort_by, so the AI can say why an airport scores as it does (P75).
+            **score_points(by_code[code], in_force),
         }
         if sort_by == "score":
             airport = by_code[code]
@@ -238,6 +308,7 @@ def rank_airports(con, settings):
                 demand_score=airport.demand_score,
                 strain_score=airport.strain_score,
                 grades=dict(airport.grades),
+                levels={name: grade_level(grade) for name, grade in airport.grades.items()},
                 flags=list(airport.flags),
                 missing=list(airport.missing),
             )
@@ -251,9 +322,15 @@ def rank_airports(con, settings):
     shown = list(WEIGHT_MEASURES.values()) if sort_by in SCORE_SORTS else [sort_by]
     assumptions = about_assumptions(min_enpl, shown)
     assumptions.append(NOTE_RANKS)
+    assumptions.append(NOTE_POINTS)
     if sort_by == "score":
-        in_force = {k: (settings.weights or DEFAULT_WEIGHTS).get(k, 0) for k in WEIGHT_KEYS}
         assumptions.append("Weights: " + ", ".join(f"{k} {w:g}" for k, w in in_force.items()) + ".")
 
     about = {"data_period": about_period(), "filters": filters, "missing": missing, "assumptions": assumptions}
-    return ToolResult(data={"sort_by": sort_by, "order": settings.order, "airports": rows}, about=about)
+    data = {
+        "sort_by": sort_by,
+        "measure_label": measure_label(sort_by, settings.weights),
+        "order": settings.order,
+        "airports": rows,
+    }
+    return ToolResult(data=data, about=about)

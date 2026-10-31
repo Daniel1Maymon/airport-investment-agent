@@ -85,11 +85,18 @@ Ranks airports by any measure.
 | `top_n` | 10 | at most 25 |
 
 Output: one row per airport with the sorted measure, its grade, its `national_rank` (place among all US airports in the size filter) and its `region_rank` (place among the airports that match the filters, so the AI never counts ranks itself), and (for `score`) the six measure grades and the flags. Every result that holds grades (this tool, `airport_profile`, `unmet_demand`) also says in `about` what a grade means: a higher grade = a higher value; for strain measures, more strain. Details: implementation-plan.md P71.
+
+Added after a review of the question run (P75, P76, P78), so the AI copies the meaning instead of working it out:
+- `measure_label`: the plain name of the sorted measure, e.g. "Final score (demand 40% + strain 60% by default)".
+- `level` on every row: the level word of its grade (high = 67+, low = 33 or less, else middle; none for the score sorts); for `score` also `levels`, one word per measure grade.
+- `demand_points` and `strain_points` on every row: how many points each measure adds to the demand and strain halves of the score. They add up to that half's score, so the measure with the most points is the biggest reason for it.
 Examples: "Which New England airports are strong candidates for terminal expansion?", "10 most delayed airports", "rank again with growth at 60%".
 
 ### 3. `airport_profile`
 Every measure, with its national grade, for **1 to 5 airports** side by side, plus the score and flags.
 Examples: "Compare congestion at LAX and SNA", "Tell me about Nashville", "Why is BTV ranked 3rd?".
+
+Output: per airport, each measure as {`value`, `grade`, `level`} (the level word as in `rank_airports`), the final score with `demand_score` and `strain_score`, `demand_points` and `strain_points` (default weights; empty for an airport under the size filter, which has no score), the national rank, the flags, and the `congestion` block below (P75, P76).
 
 **Congestion** means the crowding measures: `departures_per_runway`, `nas_delay_per_flight`, `taxi_out_min`, `late_share`, `cancel_rate`. The summary number is `strain_score`, the strain half of the ranking score, so a congestion answer and a ranking answer use the same rules (decisions 7.18).
 
@@ -124,6 +131,8 @@ Example: "Why are flights at Newark late?".
 ### 7. `unmet_demand`
 An estimate of the seats airlines would sell if they flew more, for 1–5 airports. Method below.
 Example: "What is the unmet flight demand at SFO, and why?".
+
+Output: per airport, the 2025 passengers, seats and load factor; `estimates`, one per target (80%, 85%, and an optional custom one), each with missing seats, missing flights, `months_over_target` (the months that miss seats at that target, with their load factor and missing seats) and `annual_vs_target`, a ready-made sentence such as "The 2025 load factor (79.2%) is below the 80% target; 1 month is above it: Jul." (P77); and the `why`: load factor by month, delay minutes by cause, and `runway_and_taxi` cells {`value`, `grade`, `level`}.
 
 ### 8. `data_info`
 No input. Sources, periods loaded, load date, scope (679 US airports with scheduled service; territories excluded), and what we do not have.

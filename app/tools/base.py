@@ -9,7 +9,8 @@ Used by:      app/tools/find.py, app/tools/rank.py, app/tools/profile.py,
               app/tools/unmet.py, app/tools/info.py, app/tools/live.py.
               tests: test_step08_tool_base.py, test_step09_resolver.py,
               test_step10_rank_profile.py, test_step11_trend_routes_delays.py,
-              test_step12_unmet_info_live.py.
+              test_step12_unmet_info_live.py, test_fix_answer_quality.py.
+              app/tools/rank.py, app/tools/profile.py, app/tools/unmet.py (grade_level).
               app/agent/loop.py (run_tool, tool_specs_for_ai); test_step14_agent_loop.py.
 Uses:         app/measures.py (MEASURES), app/refusals.py (REFUSALS),
               app/tools/resolver.py (resolve_airport, which reads the airports table).
@@ -19,6 +20,8 @@ Main parts:   US_STATES - the 50 states + DC.
               SettingsError - raised by a settings model's own check, with allowed values.
               TopN, AirportList, AirportCode, State, StateList, MeasureName - shared
                 setting types for the tools' settings models.
+              HIGH_LEVEL_FROM, LOW_LEVEL_UP_TO - where a grade's level word changes (P76).
+              grade_level(grade) - the level word of a grade: "high", "middle", "low".
               ToolResult(data, about) - what every tool returns; .to_dict().
               Tool - one registered tool: name, description, settings_model, fn.
               TOOLS - the tool list: name -> Tool.
@@ -28,7 +31,7 @@ Main parts:   US_STATES - the 50 states + DC.
               tool_specs_for_ai() - the tool descriptions sent to the AI, sorted by name.
 Design:       docs/tools.md "How a tool call works" and "Limits that apply to every tool";
               docs/agent.md "What every tool returns"; docs/decisions.md 7.13, 7.19;
-              docs/implementation-plan.md P24, P28.
+              docs/implementation-plan.md P24, P28, P76.
 
 A bad setting or an unknown tool gives the AI an error that lists the allowed values,
 so it can correct itself, and nothing runs.
@@ -92,6 +95,28 @@ AirportCode = Annotated[str, Field(min_length=1, max_length=100), AIRPORT_NAMES]
 State = Annotated[Literal[US_STATES], BeforeValidator(_upper)]
 StateList = Annotated[list[State], Allowed(sorted(US_STATES))]
 MeasureName = Annotated[Literal[tuple(MEASURES)], Allowed(sorted(MEASURES))]
+
+
+# A grade of 67 or more is "high", 33 or less is "low", the rest "middle" (P76). The AI
+# copies this word instead of deciding by itself whether a value is high or low.
+HIGH_LEVEL_FROM = 67
+# Grades up to and including this one are "low".
+LOW_LEVEL_UP_TO = 33
+
+
+def grade_level(grade):
+    """The level word of a national grade (P76).
+
+    grade: a grade from 0 to 100, or None when the airport has no grade.
+    Returns "high" (67 or more), "low" (33 or less), "middle" (in between), or None.
+    """
+    if grade is None:
+        return None
+    if grade >= HIGH_LEVEL_FROM:
+        return "high"
+    if grade <= LOW_LEVEL_UP_TO:
+        return "low"
+    return "middle"
 
 
 class ToolResult:

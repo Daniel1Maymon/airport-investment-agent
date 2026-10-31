@@ -6,7 +6,8 @@ What it is:   Turns each of the six scored measures into a percentile grade from
 Why we need:  compute_measures() (app/measures.py) gives raw numbers in different units
               (fractions, minutes, departures). They can only be added up on one scale.
 Used by:      app/tools/rank.py (`rank_airports`), app/tools/profile.py (`airport_profile`).
-              tests: test_step07_scoring.py, test_step10_rank_profile.py.
+              tests: test_step07_scoring.py, test_step10_rank_profile.py,
+              test_fix_answer_quality.py.
 Uses:         the dict from compute_measures(), passed in by the caller. No database and
               no project imports.
 Main parts:   DEFAULT_WEIGHTS - weight key (D1..S4) -> weight; they total 100.
@@ -18,9 +19,11 @@ Main parts:   DEFAULT_WEIGHTS - weight key (D1..S4) -> weight; they total 100.
               ScoredAirport - one airport's raw measures, grades, scores, rank, flags,
                 missing.
               percentile_grades(values) - grade each airport 0-100 against the others.
+              half_points(grades, weights, keys) - how many points each measure adds to
+                one half of the score (P75).
               score_airports(measures, weights=None, min_enplanements=100_000) - grade,
                 score and rank every airport that passes the size filter, best first.
-Design:       docs/scoring.md; docs/implementation-plan.md P1, P13-P22.
+Design:       docs/scoring.md; docs/implementation-plan.md P1, P13-P22, P75.
 
 THE WEIGHTS (docs/scoring.md)
   Demand 40%: D1 growth_long 20, D2 growth_short 20
@@ -114,6 +117,30 @@ def _weighted(grades, weights, keys):
     if total == 0:
         return None
     return round(sum(w * g for w, g in used) / total, 1)
+
+
+def half_points(grades, weights, keys):
+    """How many points each measure adds to one half of the score (P75).
+
+    grades:  {measure name: grade} of one airport (a measure with no grade is not there).
+    weights: the weights in force, one per key D1..S4 (keys left out count as 0).
+    keys:    the half's weight keys, DEMAND_KEYS or STRAIN_KEYS.
+
+    points = grade x weight / (total weight of the half's measures that have a grade),
+    rounded to 1 decimal like the scores, so the points add up to the half's score
+    (apart from rounding). Returns {measure name: points}; {} when no measure of the
+    half has a grade or their total weight is 0.
+    """
+    # Only the measures the airport has a grade for count, as in _weighted.
+    used = [
+        (WEIGHT_MEASURES[k], weights.get(k, 0), grades[WEIGHT_MEASURES[k]])
+        for k in keys
+        if WEIGHT_MEASURES[k] in grades
+    ]
+    total = sum(w for _name, w, _grade in used)
+    if total == 0:
+        return {}
+    return {name: round(g * w / total, 1) for name, w, g in used}
 
 
 def score_airports(measures, weights=None, min_enplanements=100_000) -> list[ScoredAirport]:

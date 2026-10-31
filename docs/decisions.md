@@ -317,6 +317,11 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 
 **Why:** they run in seconds, for free, on every change, and catch mistakes in the numbers before the AI ever explains them. The AI's behaviour is covered by the question script (7.21).
 
+### 7.25 Python gives the meaning, not only the numbers
+**Decision:** tool results now carry ready-made meaning next to the numbers: a level word for every grade (high, middle, low), the points each measure adds to the demand and strain halves of the score, the months above a target load factor with a one-sentence comparison of the year and the target, and the plain name of the measure a ranking is sorted by. Six more prompt lines tell the AI to copy these instead of working them out, and not to add facts or "only/most/lowest" claims that no tool showed. Details: [implementation-plan.md](implementation-plan.md) P75–P79.
+
+**Why:** a review of the first full question run (7.21) showed that the numbers were right, but the explanations often were not: the AI read some grades the wrong way round, named the wrong cause of a score, named months as above the target that were not, and added facts no tool returned. Each of these is a small calculation or reading the AI did by itself. Moving them into Python makes them deterministic and tested, the same rule as for every number (Python does the numbers, the AI explains).
+
 ---
 
 ## 8. Open decisions
