@@ -168,7 +168,7 @@ All five sources were downloaded and inspected on 2026-10-30. Exact URLs and dow
 ### 7.1 Years to load
 **Decision:** T-100 for **2019** (last normal year before COVID), **2024** and **2025**; On-Time delays for **calendar 2025**; FAA boardings **2023–2025**.
 
-**Why:** 2025 is the main period for every answer. 2019 is the "before" picture for long-term growth, and 2024 gives the short-term trend. 2020–2022 are skipped because COVID makes growth look like recovery.
+**Why:** 2025 is the main period for every answer. 2019 is the "before" picture for long-term growth, and 2024 gives the short-term trend. 2020–2022 are skipped because COVID makes growth look like recovery. The page explains this in its "About the data" panel, and answers that compare with 2019 carry a fixed COVID note (implementation plan P113–P115).
 
 ### 7.2 Scoring method
 **Decision:** Option A, a weighted score. Each KPI becomes a 0–100 score relative to the other airports, then the scores are combined with stated weights (starting point: Demand 40%, Strain 60%). Small airports are filtered out, and plain-word flags are shown next to the score.

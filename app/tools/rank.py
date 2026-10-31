@@ -77,6 +77,13 @@ MinEnplanements = Annotated[int, Field(ge=0, le=10_000_000), Allowed([0, 10_000_
 
 # `about` texts (P35). The limits are docs/tools.md "Known limits", without markdown marks.
 DATA_PERIOD = "2025 (growth from 2019 and 2024; delays Jan–Dec 2025)"
+# P114: growth since 2019 needs this context; the AI passes it on to the reader.
+NOTE_COVID = (
+    "2019 is the last normal year before COVID, so it is the 'before' year for long-term growth; "
+    "2020-2022 are left out because traffic fell and then came back, and growth from those years "
+    "would show recovery, not new demand. Airports that recovered slowly after COVID can show weak "
+    "growth since 2019 even when they grow fast now; recent growth (2025 vs 2024) balances this."
+)
 NOTE_LONG_HAUL = "Long-haul = 3,000+ miles, passenger flights only."
 NOTE_TARGET_85 = "missing_seats_pct uses an 85% target load factor (the cautious end of the 80–85% range)."
 NOTE_DELAYS = (
@@ -206,6 +213,8 @@ def about_assumptions(min_enplanements, shown):
         f"in {YEAR}, before any region filter.",
         NOTE_GRADES,
     ]
+    if "growth_long" in shown:
+        notes.append(NOTE_COVID)
     if "long_haul_share" in shown:
         notes.append(NOTE_LONG_HAUL)
     if "missing_seats_pct" in shown:

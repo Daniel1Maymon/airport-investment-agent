@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field, model_validator
 from app.measures import ENPLANEMENT_YEARS, TRAFFIC_YEARS, delays_by_period, enplanements_by_year, traffic_by_period
 from app.tools.base import AirportList, Allowed, SettingsError, StateList, ToolResult, register
 from app.tools.find import Region
-from app.tools.rank import DELAY_NAMES, NOTE_DELAYS, NOTE_TAXI
+from app.tools.rank import DELAY_NAMES, NOTE_COVID, NOTE_DELAYS, NOTE_TAXI
 from app.tools.resolver import load_airports, resolve_region
 
 TRAFFIC_MEASURES = ("passengers", "departures", "seats", "load_factor")
@@ -134,6 +134,7 @@ def traffic_trend(con, settings):
 
     if measure in TRAFFIC_MEASURES:
         assumptions.append("passengers, departures, seats and load_factor count departing passenger flights only.")
+        assumptions.append(NOTE_COVID)  # P114: these measures have 2019, 2024 and 2025
     if measure in DELAY_NAMES:
         assumptions.append(NOTE_DELAYS)
     if measure == "taxi_out_min":

@@ -682,24 +682,27 @@ document.querySelectorAll("button[data-q]").forEach(function (b) {
   });
 });
 
-function openMethod() {
-  if (typeof methodEl.showModal === "function") methodEl.showModal();
-  else methodEl.setAttribute("open", "");
-}
-document.querySelectorAll(".open-method").forEach(function (b) {
-  b.addEventListener("click", openMethod);
-});
-
-methodEl.querySelectorAll("[data-close]").forEach(function (b) {
-  b.addEventListener("click", function () {
-    if (typeof methodEl.close === "function") methodEl.close();
-    else methodEl.removeAttribute("open");
+// P105, P113: two info panels ("How the score works", "About the data"). Each opens from
+// its buttons and closes with Close, Escape or a click on the dark backdrop.
+function wireDialog(dialogEl, openerSelector) {
+  document.querySelectorAll(openerSelector).forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (typeof dialogEl.showModal === "function") dialogEl.showModal();
+      else dialogEl.setAttribute("open", "");
+    });
   });
-});
-
-methodEl.addEventListener("click", function (e) {
-  if (e.target === methodEl) methodEl.close(); // a click on the dark backdrop closes it
-});
+  dialogEl.querySelectorAll("[data-close]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      if (typeof dialogEl.close === "function") dialogEl.close();
+      else dialogEl.removeAttribute("open");
+    });
+  });
+  dialogEl.addEventListener("click", function (e) {
+    if (e.target === dialogEl && typeof dialogEl.close === "function") dialogEl.close(); // the backdrop
+  });
+}
+wireDialog(methodEl, ".open-method");
+wireDialog(document.getElementById("data-notes"), ".open-data");
 
 // ---------- Voice input (bonus): fills the message box, never sends by itself ----------
 
