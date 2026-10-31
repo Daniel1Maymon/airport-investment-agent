@@ -89,7 +89,9 @@ The Rules below apply to both sub-agents; include them in their instructions.
 - **Git (this project's own rules; they replace any other commit or push checks):**
   - Work in the **main project folder**, one session at a time, on the step's branch. Not in a separate copy of the repo: `CLAUDE.md` is not in git, so a copy wouldn't have it.
   - Before every commit, the whole `pytest` suite passes.
-  - Never commit, merge or push without the user's approval.
+  - On a step branch, commit and push freely (no approval needed). **Merging into `main` or pushing `main` always needs the user's approval.**
+  - A secret scan runs on every commit and every push (global git hooks in `~/.claude/git-hooks/`). It blocks: files that must never be committed (`.env` except `.env.example`, `*.duckdb`, `*.sqlite`, `data/`, `CLAUDE.md`, the exam PDF, key files), files over 5 MB, and anything that looks like a key or password pattern (gitleaks). Only the user adds exceptions.
+  - Never bypass the checks: no `--no-verify` or `-n`, never change `core.hooksPath`, never edit the hooks. If a check blocks you, stop and tell the user.
   - No AI attribution text in commits or PRs.
   - After the user approves a step, its branch is merged into `main` (with the user's approval) with `git merge --no-ff step-NN-short-name -m "Step NN: short name"`, and `main` is pushed to GitHub. The `--no-ff` and the `Step NN:` message (two digits) are required: they are how the next session finds its step (section 0). **Merge on the laptop, never with the "Merge pull request" button on the GitHub website**: the website writes its own message ("Merge pull request #12 from …"), and the next session would think the step is not done. The next step starts from `main`.
 
