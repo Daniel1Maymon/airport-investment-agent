@@ -1,0 +1,420 @@
+<!doctype html>
+<!--
+What:       The chat page of the US Airport Investment Agent (Step 17).
+Why:        The exam asks for a chat interface. This page is the only thing the user sees:
+            a message box, the answers, the tables and the "How I got this" list.
+Used by:    The browser. Served as plain files (locally on port 5500, online by Vercel).
+Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
+Main parts: the "Your chats" side panel (P109-P112); header (menu button on narrow screens, name, language, "How the score works", New chat, chat ID); the welcome
+            headline; the message list; the message box (microphone only when the browser has
+            speech recognition, round Send button); the starter questions; the
+            "How the score works" panel.
+Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and method panel
+            (static text, checked against docs/scoring.md). P106: Hebrew, right to left.
+            P108: Deloitte colours. P109-P112: past chats in a side panel.
+            P107: a calm chat layout (centred start screen, grey question bubbles, answers as
+            plain text, one rounded message box). Readable at phone width (375 px): 16 px side
+            margins, text wraps, wide tables scroll sideways inside their own box (P97).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>US Airport Investment Agent</title>
+  <style>
+    :root {
+      --ink: #1b1f24;        /* text */
+      --muted: #676f7a;      /* secondary text */
+      --faint: #9aa1ab;      /* hints */
+      --paper: #ffffff;      /* page */
+      --bubble: #f1f2f4;     /* question bubbles, chips on hover */
+      --line: #e4e6ea;       /* borders */
+      --black: #000000;      /* Deloitte black: send button, strain */
+      --green: #86bc25;      /* Deloitte green: demand, logo mark */
+      --green-dark: #26890d; /* darker Deloitte green: links, focus (readable on white) */
+      --warn-bg: #f3f8e9; --warn-ink: #2f4a0a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+    }
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .column { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+    .nw { white-space: nowrap; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* ---------- Buttons ---------- */
+    button { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; border-radius: 999px; border: 1px solid transparent; background: none; padding: 7px 12px; }
+    button:hover:not(:disabled) { background: var(--bubble); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { border-color: var(--line); }
+    button:focus-visible, summary:focus-visible, #message:focus-visible { outline: 3px solid rgba(134, 188, 37, 0.6); outline-offset: 2px; }
+
+    /* ---------- Header: slim, no border ---------- */
+    header { position: sticky; top: 0; z-index: 3; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    header .column { max-width: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 10px 16px; }
+    .brand { flex: 1 1 auto; min-width: 0; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; display: flex; align-items: center; gap: 9px; }
+    .home-link::before { content: ""; width: 20px; height: 20px; border-radius: 6px; flex: none; background: linear-gradient(135deg, var(--green) 0 50%, var(--black) 50% 100%); }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+    .home-link { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 9px; border-radius: 8px; }
+    .home-link:hover { opacity: 0.75; }
+    .home-link:focus-visible { outline: 2px solid var(--green-dark); outline-offset: 3px; }
+    #new-chat { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; font-weight: 600; }
+    #new-chat .icon { width: 16px; height: 16px; flex: none; }
+    #chat-id { width: 100%; order: 3; font-size: 11px; color: var(--faint); overflow-wrap: anywhere; padding-inline-start: 29px; }
+    #chat-id:empty { display: none; }
+
+    /* ---------- Empty chat: everything centred, like a search page (P107) ---------- */
+    #welcome[hidden] { display: none; }
+    #welcome { text-align: center; padding-top: 40px; }
+    #welcome h2 { margin: 0 0 10px; font-size: clamp(26px, 4.4vw, 34px); font-weight: 650; line-height: 1.2; letter-spacing: -0.02em; }
+    .lead { margin: 0 auto 26px; max-width: 46ch; color: var(--muted); font-size: 16px; line-height: 1.55; }
+    body.empty main#messages { display: none; }
+    body.empty #welcome { margin-top: auto; }
+    body.empty #starter { margin-bottom: auto; }
+    body:not(.empty) #starter { display: none; }
+
+    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 26px; }
+    .examples button {
+      text-align: start; border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px;
+      font-size: 14.5px; font-weight: 400; line-height: 1.4; color: var(--ink);
+    }
+    .examples button:hover:not(:disabled) { background: var(--bubble); border-color: var(--bubble); }
+
+    /* The score split as one thin meter, in Deloitte colours */
+    .score-meter { display: flex; height: 30px; border-radius: 999px; overflow: hidden; font-size: 13px; font-weight: 600; }
+    .score-meter span { display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+    .score-meter .demand { flex: 40; background: var(--green); color: var(--black); }
+    .score-meter .strain { flex: 60; background: var(--black); color: #fff; }
+    .score-meter b { font-weight: 750; margin-inline-end: 6px; font-variant-numeric: tabular-nums; }
+    .more { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+    button.inline { padding: 0; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; border-radius: 4px; }
+    button.inline:hover:not(:disabled) { background: none; color: var(--green-dark); }
+
+    /* ---------- Chat ---------- */
+    #messages { flex: 1; padding-top: 24px; padding-bottom: 8px; min-width: 0; }
+    .turn { margin-bottom: 40px; }
+    .msg { overflow-wrap: anywhere; min-width: 0; }
+    .user {
+      width: fit-content; max-width: 78%; margin: 0 0 22px; margin-inline-start: auto;
+      background: var(--bubble); border-radius: 22px; padding: 10px 18px; white-space: pre-wrap;
+    }
+    .bot { padding: 0 2px; }
+    .bot-label { display: none; }
+    .answer { max-width: 70ch; margin-inline-end: auto; }
+    .answer p { margin: 0 0 14px; }
+    .answer h3 { font-size: 19px; line-height: 1.35; margin: 22px 0 8px; }
+    .answer h4 { font-size: 16.5px; margin: 18px 0 6px; }
+    .answer > :first-child { margin-top: 0; }
+    .answer ul, .answer ol { margin: 0 0 14px; padding-inline-start: 22px; }
+    .answer li { margin: 0 0 7px; }
+    .answer li::marker { color: var(--faint); }
+    .answer strong { font-weight: 650; }
+    .answer .table-scroll { margin: 4px 0 16px; }
+    .working { color: var(--muted); padding: 2px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .working { animation: pulse 1.4s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.45; } }
+    }
+    .msg.refusal { background: var(--warn-bg); color: var(--warn-ink); border-radius: 16px; padding: 12px 16px; }
+    .refusal p { margin: 0; }
+
+    /* The tool tables, folded under the answer (P97, P104) */
+    details.numbers { margin-top: 6px; font-size: 14px; }
+    details.numbers > summary {
+      display: inline-block; list-style: none; border: 1px solid var(--line); border-radius: 999px;
+      padding: 5px 14px; font-weight: 500; color: var(--ink);
+    }
+    details.numbers > summary::-webkit-details-marker { display: none; }
+    details.numbers > summary::before { content: "▸"; display: inline-block; margin-inline-end: 7px; color: var(--muted); }
+    html[dir="rtl"] details.numbers > summary::before { content: "◂"; }
+    details.numbers[open] > summary::before { content: "▾"; }
+    details.numbers > summary:hover { background: var(--bubble); }
+    summary { cursor: pointer; }
+    .table-block { margin: 16px 0 6px; direction: ltr; text-align: left; } /* tool tables are English data (P106) */
+    .table-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+    .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; }
+    table { border-collapse: collapse; font-size: 13.5px; width: 100%; line-height: 1.4; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #eef0f3; text-align: start; white-space: nowrap; }
+    th { background: #f7f8f9; font-weight: 600; color: #3b4450; }
+    tbody tr:last-child td { border-bottom: none; }
+    td.num { text-align: end; font-variant-numeric: tabular-nums; }
+    .table-block details { font-size: 13px; margin-top: 6px; color: var(--muted); }
+    .table-block details p { margin: 6px 0 2px; }
+    .table-block details ul { margin: 0; padding-inline-start: 20px; }
+
+    .steps { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .steps h4 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+    .steps ul { margin: 0; padding-inline-start: 18px; }
+
+    /* ---------- The message box: one rounded field, buttons inside (P107) ---------- */
+    .composer { position: sticky; bottom: 0; z-index: 2; background: linear-gradient(rgba(255, 255, 255, 0), var(--paper) 22px); padding-top: 18px; }
+    body.empty .composer { position: static; background: none; padding-top: 0; }
+    .composer-box {
+      display: flex; align-items: flex-end; gap: 6px; padding: 8px 8px 8px 20px;
+      border: 1px solid var(--line); border-radius: 28px; background: var(--paper);
+      box-shadow: 0 2px 6px rgba(15, 31, 53, 0.05), 0 10px 30px rgba(15, 31, 53, 0.07);
+    }
+    html[dir="rtl"] .composer-box { padding: 8px 20px 8px 8px; }
+    .composer-box:focus-within { border-color: var(--green); }
+    #message {
+      flex: 1; min-width: 0; border: none; outline: none; background: transparent; resize: none;
+      font: inherit; font-size: 16px; line-height: 1.5; padding: 8px 0; min-height: 40px; max-height: 40vh;
+    }
+    #message::placeholder { color: var(--faint); }
+    #mic { flex: none; height: 38px; }
+    #mic[hidden] { display: none; }
+    #send {
+      flex: none; width: 38px; height: 38px; padding: 0; border-radius: 50%;
+      background: var(--black); color: #fff; display: grid; place-items: center;
+    }
+    #send:hover:not(:disabled) { background: var(--green-dark); }
+    #send svg { width: 18px; height: 18px; }
+    .disclaimer { margin-top: 8px; margin-bottom: 12px; text-align: center; font-size: 12px; color: var(--faint); }
+
+    /* ---------- "How the score works" panel ---------- */
+    dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 24px 80px rgba(15, 31, 53, 0.28); }
+    dialog#method::backdrop { background: rgba(15, 31, 53, 0.35); backdrop-filter: blur(3px); }
+    .method-inner { padding: 30px 32px 26px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
+    .method-inner h2 { font-size: 24px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; }
+    .method-inner p, .method-inner li { font-size: 15px; color: #3b4450; }
+    .method-inner ul { padding-inline-start: 20px; margin: 0; }
+    .method-inner table { font-size: 14px; margin-top: 6px; }
+    .method-inner td, .method-inner th { white-space: normal; }
+    .method-close { position: sticky; top: 0; float: inline-end; margin-block-start: -6px; margin-inline-end: -8px; background: var(--paper); }
+
+    /* ---------- Hebrew, right to left (P106) ---------- */
+    html:not([lang="he"]) [data-lang="he"], html[lang="he"] [data-lang="en"] { display: none !important; }
+    html[lang="he"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; }
+    html[lang="he"] #welcome h2, html[lang="he"] .method-inner h2 { letter-spacing: 0; }
+    .lang-btn > span { display: inline-flex; align-items: center; gap: 7px; }
+    .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 31, 53, 0.15); flex: none; }
+
+    /* ---------- Chat history side panel (P109-P112) ---------- */
+    /* Wide screens: always open on the start side (left in English, right in Hebrew).
+       Phone and narrow screens: hidden; the menu button opens it over the page. */
+    #history {
+      position: fixed; top: 0; bottom: 0; inset-inline-start: 0; z-index: 5; width: 260px;
+      background: #f7f7f7; border-inline-end: 1px solid var(--line);
+      display: flex; flex-direction: column; padding: 12px 10px;
+    }
+    .history-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
+    .history-top h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+    #history-close { display: none; font-size: 20px; line-height: 1; padding: 4px 10px; }
+    #history-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+    #history-list li { display: flex; align-items: center; border-radius: 10px; }
+    #history-list li:hover, #history-list li.current { background: #e9eaec; }
+    #history-list li.current { box-shadow: inset 3px 0 0 var(--green); }
+    html[dir="rtl"] #history-list li.current { box-shadow: inset -3px 0 0 var(--green); }
+    .chat-item {
+      flex: 1; min-width: 0; text-align: start; border-radius: 10px; padding: 8px 10px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400;
+    }
+    .chat-item:hover:not(:disabled), .chat-remove:hover:not(:disabled) { background: none; }
+    .chat-remove { flex: none; padding: 4px 9px; color: var(--faint); opacity: 0; font-size: 16px; line-height: 1; }
+    #history-list li:hover .chat-remove, .chat-remove:focus-visible { opacity: 1; }
+    .chat-remove:hover:not(:disabled) { color: var(--ink); }
+    .history-empty { font-size: 13px; color: var(--faint); padding: 4px 8px; margin: 0; }
+    #history-shade { display: none; position: fixed; inset: 0; z-index: 4; background: rgba(0, 0, 0, 0.3); }
+    #menu { display: none; font-size: 18px; line-height: 1; padding: 6px 10px; }
+    @media (min-width: 900px) {
+      .page { margin-inline-start: 260px; }
+    }
+    @media (max-width: 899px) {
+      #history { transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 30px rgba(0, 0, 0, 0.15); }
+      html[dir="rtl"] #history { transform: translateX(100%); }
+      body.history-open #history { transform: none; }
+      body.history-open #history-shade { display: block; }
+      #history-close, #menu { display: inline-block; }
+      .chat-remove { opacity: 1; } /* no hover on a phone */
+    }
+    @media (prefers-reduced-motion: reduce) { #history { transition: none; } }
+
+    /* ---------- Phone width ---------- */
+    @media (max-width: 600px) {
+      .examples { grid-template-columns: 1fr; }
+      .examples button:nth-child(n+3) { display: none; } /* two suggestions are enough on a phone */
+      #welcome { padding-top: 24px; }
+      .user { max-width: 90%; }
+      .method-inner { padding: 22px 18px; }
+    }
+  </style>
+</head>
+<body class="empty">
+  <aside id="history" aria-label="Your chats">
+    <div class="history-top">
+      <h2><span data-lang="en">Your chats</span><span data-lang="he">השיחות שלך</span></h2>
+      <button id="history-close" type="button" aria-label="Close">×</button>
+    </div>
+    <ul id="history-list"></ul>
+    <p id="history-empty" class="history-empty"><span data-lang="en">Your chats will show here.</span><span data-lang="he">השיחות שלך יופיעו כאן.</span></p>
+  </aside>
+  <div id="history-shade"></div>
+  <div class="page">
+    <header>
+      <div class="column">
+        <button id="menu" type="button" aria-label="Your chats" aria-controls="history">☰</button>
+        <div class="brand">
+          <h1><button id="home" type="button" class="home-link" title="Back to the start"><span data-lang="en">US Airport Investment Agent</span><span data-lang="he">סוכן השקעות בשדות תעופה בארה״ב</span></button></h1>
+        </div>
+        <div class="header-actions">
+          <button id="lang-toggle" type="button" class="lang-btn"><span data-lang="en" lang="he"><svg class="flag" viewBox="0 0 220 160" aria-hidden="true"><rect width="220" height="160" fill="#fff"/><rect y="15" width="220" height="25" fill="#0038b8"/><rect y="120" width="220" height="25" fill="#0038b8"/><g fill="none" stroke="#0038b8" stroke-width="5.5"><path d="M110 52 L136 97 L84 97 Z"/><path d="M110 108 L84 63 L136 63 Z"/></g></svg>עברית</span><span data-lang="he" lang="en"><svg class="flag" viewBox="0 0 190 100" aria-hidden="true"><rect width="190" height="100" fill="#b22234"/><g fill="#fff"><rect y="7.7" width="190" height="7.7"/><rect y="23.1" width="190" height="7.7"/><rect y="38.5" width="190" height="7.7"/><rect y="53.8" width="190" height="7.7"/><rect y="69.2" width="190" height="7.7"/><rect y="84.6" width="190" height="7.7"/></g><rect width="76" height="53.8" fill="#3c3b6e"/></svg>English</span></button>
+          <button id="open-method" type="button" class="open-method"><span data-lang="en">How the score works</span><span data-lang="he">איך עובד הציון</span></button>
+          <button id="new-chat" type="button" class="secondary"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span data-lang="en">New chat</span><span data-lang="he">שיחה חדשה</span></button>
+        </div>
+        <div id="chat-id"></div>
+      </div>
+    </header>
+
+    <section id="welcome" class="column" aria-labelledby="welcome-title">
+      <div data-lang="en">
+        <h2 id="welcome-title">Which US airports are worth expanding?</h2>
+        <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
+      </div>
+      <div data-lang="he">
+        <h2>באילו שדות תעופה בארה״ב כדאי להשקיע בהרחבה?</h2>
+        <p class="lead">שאלו על כל אחד מ־679 שדות התעופה בארה״ב. כל תשובה מדרגת את השדות לפי צמיחה ועומס, ומציגה את המספרים שמאחוריה.</p>
+      </div>
+    </section>
+
+    <main id="messages" class="column" aria-live="polite"></main>
+
+    <div class="composer column">
+      <div class="composer-box">
+        <textarea id="message" rows="1" placeholder="Ask about any US airport" aria-label="Your question"></textarea>
+        <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
+        <button id="send" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="sr-only" data-lang="en">Send</span><span class="sr-only" data-lang="he">שליחה</span></button>
+      </div>
+    </div>
+
+    <section id="starter" class="column" aria-label="Starter questions">
+      <div data-lang="en">
+        <div class="examples">
+          <button type="button" data-q="Which New England airports are strong candidates for terminal expansion?">Which New England airports are strong candidates for terminal expansion?</button>
+          <button type="button" data-q="Compare congestion at LA (LAX) and Santa Ana (SNA).">Compare congestion at LAX and Santa Ana (SNA).</button>
+          <button type="button" data-q="What % of flights out of Anchorage are long-haul?">What share of flights out of Anchorage are long-haul?</button>
+          <button type="button" data-q="What is the unmet flight demand at SFO, and why?">What is the unmet flight demand at SFO, and why?</button>
+        </div>
+        <div class="score-meter" role="img" aria-label="Score: demand 40%, strain 60%"><span class="demand"><b>40%</b>Demand</span><span class="strain"><b>60%</b>Strain</span></div>
+        <p class="more">Demand is passenger growth; strain is full planes, delays, taxi time and flights per runway. Data: US DOT and FAA, <span class="nw">2019–2025</span>. <button type="button" class="inline open-method">How the score works</button></p>
+      </div>
+      <div data-lang="he">
+        <div class="examples">
+          <button type="button" data-q="אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?">אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?</button>
+          <button type="button" data-q="השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).">השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).</button>
+          <button type="button" data-q="איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?">איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?</button>
+          <button type="button" data-q="מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?">מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?</button>
+        </div>
+        <div class="score-meter" role="img" aria-label="ציון: ביקוש 40%, עומס 60%"><span class="demand"><b>40%</b>ביקוש</span><span class="strain"><b>60%</b>עומס</span></div>
+        <p class="more">ביקוש הוא צמיחה בנוסעים; עומס הוא מטוסים מלאים, עיכובים, זמן הסעה וטיסות לכל מסלול. נתונים: משרד התחבורה האמריקאי ו־FAA, <bdi class="nw">2019–2025</bdi>. <button type="button" class="inline open-method">איך עובד הציון</button></p>
+      </div>
+    </section>
+
+    <p class="disclaimer column"><span data-lang="en">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</span><span data-lang="he">כלי לתמיכה בהחלטות מנתונים ציבוריים, לא ייעוץ השקעות. ה־AI מסביר; כללים קבועים מחשבים כל מספר.</span></p>
+  </div>
+
+
+  <dialog id="method" aria-label="How the score works">
+    <div class="method-inner" data-lang="en">
+      <button type="button" class="secondary method-close" data-close>Close</button>
+      <h2 id="method-title">How the score works</h2>
+      <p>The firm wants to know where new terminal capacity will actually be used. Growth alone may fade; strain alone may fix itself. An airport with both is a strong candidate.</p>
+
+      <h3>The six measures</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Measure</th><th>What it shows</th><th>Weight</th></tr></thead>
+        <tbody>
+          <tr><td>Long-term growth</td><td>Passengers 2025 vs 2019</td><td class="num">20%</td></tr>
+          <tr><td>Recent growth</td><td>Boardings 2025 vs 2024</td><td class="num">20%</td></tr>
+          <tr><td>How full planes are</td><td>Passengers ÷ seats, 2025</td><td class="num">20%</td></tr>
+          <tr><td>Busy-airport delays</td><td>Delay minutes caused by the airport or its airspace, per arriving flight</td><td class="num">15%</td></tr>
+          <tr><td>Gate to takeoff</td><td>Average taxi-out minutes</td><td class="num">10%</td></tr>
+          <tr><td>Runway load</td><td>All departures per open runway</td><td class="num">15%</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Grades and the final score</h3>
+      <p>Each measure becomes a grade from 0 to 100: a grade of 80 means higher than 80% of US airports. Grades are always national, so a Boston grade means the same in every answer. The final score is the weighted sum of the grades. Airports with fewer than 100,000 boardings a year are left out, because a few new flights would look like huge growth.</p>
+
+      <h3>Unmet demand</h3>
+      <p>The seats an airport would need so that planes are no fuller than a healthy 80–85%. It is shown as a range, not one number, because the right target is a judgement call.</p>
+
+      <h3>Where AI is used, and where it is not</h3>
+      <ul>
+        <li>The AI understands the question, picks which fixed calculation to run, and explains the result in words.</li>
+        <li>Every number is computed by fixed, tested rules on the data. The AI cannot write its own database queries.</li>
+        <li>Each answer lists the data period, filters, missing data and assumptions under "About this data".</li>
+      </ul>
+
+      <h3>Where the numbers come from</h3>
+      <ul>
+        <li>US DOT, BTS T-100: flights, seats and passengers per route (2019, 2024, 2025).</li>
+        <li>US DOT, BTS On-Time: delays, their causes, and taxi times (2025).</li>
+        <li>FAA: passenger boardings per airport (2023–2025).</li>
+        <li>OurAirports: locations and runways.</li>
+      </ul>
+
+      <h3>Limits</h3>
+      <ul>
+        <li>No public data on terminal size or gates; runways and traffic stand in for them.</li>
+        <li>Delay data covers domestic flights of the larger US airlines only.</li>
+        <li>History, not a forecast. No construction cost, land or local politics.</li>
+        <li>US territories (Puerto Rico, Guam and others) are not covered.</li>
+      </ul>
+    </div>
+    <div class="method-inner" data-lang="he">
+      <button type="button" class="secondary method-close" data-close>סגירה</button>
+      <h2>איך עובד הציון</h2>
+      <p>החברה רוצה לדעת איפה קיבולת טרמינל חדשה באמת תנוצל. צמיחה לבדה עלולה לדעוך; עומס לבדו עשוי להיפתר מעצמו. שדה שיש בו את שניהם הוא מועמד חזק.</p>
+
+      <h3>ששת המדדים</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>מדד</th><th>מה הוא מראה</th><th>משקל</th></tr></thead>
+        <tbody>
+          <tr><td>צמיחה ארוכת טווח</td><td>נוסעים ב־2025 מול 2019</td><td class="num">20%</td></tr>
+          <tr><td>צמיחה אחרונה</td><td>עולים למטוס ב־2025 מול 2024</td><td class="num">20%</td></tr>
+          <tr><td>כמה מלאים המטוסים</td><td>נוסעים ÷ מושבים, 2025</td><td class="num">20%</td></tr>
+          <tr><td>עיכובים משדה עמוס</td><td>דקות עיכוב שנגרמו מהשדה או מהמרחב האווירי, לכל טיסה נוחתת</td><td class="num">15%</td></tr>
+          <tr><td>מהשער להמראה</td><td>ממוצע דקות ההסעה עד ההמראה</td><td class="num">10%</td></tr>
+          <tr><td>עומס מסלולים</td><td>כל ההמראות לכל מסלול פעיל</td><td class="num">15%</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>ציונים והציון הסופי</h3>
+      <p>כל מדד הופך לציון בין 0 ל־100: ציון 80 פירושו גבוה מ־80% משדות התעופה בארה״ב. הציונים תמיד ארציים, כך שציון של בוסטון אומר אותו דבר בכל תשובה. הציון הסופי הוא הסכום המשוקלל של הציונים. שדות עם פחות מ־100,000 עולים למטוס בשנה לא נכללים, כי כמה טיסות חדשות היו נראות כמו צמיחה ענקית.</p>
+
+      <h3>ביקוש לא מסופק</h3>
+      <p>המושבים שהשדה היה צריך כדי שהמטוסים לא יהיו מלאים יותר מ־80–85%, רמה בריאה. התוצאה מוצגת כטווח ולא כמספר אחד, כי היעד הנכון הוא עניין של שיקול דעת.</p>
+
+      <h3>איפה משתמשים ב־AI, ואיפה לא</h3>
+      <ul>
+        <li>ה־AI מבין את השאלה, בוחר איזה חישוב קבוע להריץ, ומסביר את התוצאה במילים.</li>
+        <li>כל מספר מחושב בכללים קבועים ובדוקים על הנתונים. ה־AI לא יכול לכתוב שאילתות משלו למסד הנתונים.</li>
+        <li>כל תשובה מציינת את תקופת הנתונים, הסינונים, הנתונים החסרים וההנחות, תחת "על הנתונים".</li>
+      </ul>
+
+      <h3>מאיפה המספרים</h3>
+      <ul>
+        <li>משרד התחבורה האמריקאי, BTS T-100: טיסות, מושבים ונוסעים לכל קו (2019, 2024, 2025).</li>
+        <li>משרד התחבורה האמריקאי, BTS On-Time: עיכובים, הסיבות שלהם וזמני הסעה (2025).</li>
+        <li>FAA: עולים למטוס לכל שדה (2023–2025).</li>
+        <li>OurAirports: מיקומים ומסלולים.</li>
+      </ul>
+
+      <h3>מגבלות</h3>
+      <ul>
+        <li>אין נתונים ציבוריים על גודל טרמינל או מספר שערים; מסלולים ותנועה משמשים במקומם.</li>
+        <li>נתוני העיכובים מכסים רק טיסות פנים של חברות התעופה האמריקאיות הגדולות.</li>
+        <li>היסטוריה, לא תחזית. בלי עלויות בנייה, קרקע או פוליטיקה מקומית.</li>
+        <li>טריטוריות של ארה״ב (פוארטו ריקו, גואם ואחרות) לא נכללות.</li>
+        <li>טבלאות הנתונים מוצגות באנגלית, כמו במקור.</li>
+      </ul>
+    </div>
+  </dialog>
+  <script src="app.js"></script>
+</body>
+</html>

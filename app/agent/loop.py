@@ -11,7 +11,7 @@ Used by:      app/agent/cli.py.
 Uses:         app/store.py (ChatStore), app/tools (TOOLS, run_tool, tool_specs_for_ai),
               app/refusals.py (REFUSALS, Refusal), app/agent/prompt.py (SYSTEM_PROMPT),
               app/agent/provider.py (AIProvider, AIUnavailable).
-Main parts:   run_turn(store, con, provider, chat_id, message) -> TurnResult.
+Main parts:   run_turn(store, con, provider, chat_id, message, language="en") -> TurnResult.
               TurnResult - chat_id, answer, tool_events, refusal.
               HISTORY_CHAR_LIMIT - most characters of history sent to the AI (P60).
               MAX_TOKENS - token limit sent on every AI call; leaves room for hidden
@@ -37,7 +37,7 @@ import json
 from dataclasses import dataclass
 
 import app.tools  # noqa: F401  (fills the tool registry TOOLS)
-from app.agent.prompt import SYSTEM_PROMPT
+from app.agent.prompt import LANGUAGE_NOTES, SYSTEM_PROMPT
 from app.agent.provider import AIUnavailable
 from app.refusals import REFUSALS, Refusal
 from app.tools.base import run_tool, tool_specs_for_ai
@@ -120,10 +120,16 @@ def _trimmed(messages):
     return [m for t in turns for m in t]
 
 
-def _messages(store, chat_id):
-    """Everything the AI sees on each call: the fixed rules first, then the chat so far."""
+def _messages(store, chat_id, language="en"):
+    """Everything the AI sees on each call: the fixed rules first, then the chat so far.
+
+    language: the page language. "he" adds the Hebrew line after the rules (P106).
+    """
     history = [_to_message(s) for s in store.load_steps(chat_id)]
-    return [{"role": "system", "content": SYSTEM_PROMPT}] + _trimmed(history)
+    system = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if language in LANGUAGE_NOTES:
+        system.append({"role": "system", "content": LANGUAGE_NOTES[language]})
+    return system + _trimmed(history)
 
 
 def _end_early(store, chat_id, events, cause):
@@ -136,7 +142,7 @@ def _end_early(store, chat_id, events, cause):
     return TurnResult(chat_id, "", events, Refusal(cause, REFUSALS[cause]))
 
 
-def run_turn(store, con, provider, chat_id, message):
+def run_turn(store, con, provider, chat_id, message, language="en"):
     """Run one chat turn and return its TurnResult. Every step is saved as it happens.
 
     store:    the chat history database (SQLite).
@@ -144,6 +150,7 @@ def run_turn(store, con, provider, chat_id, message):
     provider: who answers as the AI (OpenRouter for real, a fake one in tests).
     chat_id:  an existing chat to continue, or None to start a new chat.
     message:  the user's question.
+    language: the page language, "en" or "he" (P106); "he" asks for a Hebrew answer.
     """
     # An ID we don't know: refuse and save nothing (P58).
     if chat_id is not None and not store.exists(chat_id):
@@ -160,7 +167,7 @@ def run_turn(store, con, provider, chat_id, message):
         # Ask the AI. It sees the rules, the whole chat (including tool results so far)
         # and the tool menu.
         try:
-            reply = provider.send(_messages(store, chat_id), tools, MAX_TOKENS)
+            reply = provider.send(_messages(store, chat_id, language), tools, MAX_TOKENS)
         except AIUnavailable:  # QuotaReached too
             return _end_early(store, chat_id, events, "ai_unavailable")
 
