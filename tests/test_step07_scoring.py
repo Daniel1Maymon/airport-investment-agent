@@ -363,3 +363,35 @@ def test_same_input_same_output(tiny_measures):
     assert as_rows(first) == as_rows(second)
     # the input is not changed
     assert tiny_measures == before
+
+
+# Real-data check (skipped when airports.duckdb is missing)
+
+
+@pytest.mark.realdata
+def test_real_full_ranking_under_one_second(real_db):
+    # Plan, Step 7: the full ranking takes under 1 second; print the top 10.
+    # No known real top 10 exists, so only the shape of the ranking is checked.
+    import time
+
+    start = time.perf_counter()
+    measures = compute_measures(real_db)
+    ranking = score_airports(measures)
+    elapsed = time.perf_counter() - start
+
+    assert elapsed < 1.0, f"full ranking took {elapsed:.3f} s"
+    assert ranking
+    assert [a.rank for a in ranking] == list(range(1, len(ranking) + 1))
+    # every airport passed the size filter
+    assert all(a.raw["enplanements"] >= 100_000 for a in ranking)
+    # final scores never go up down the list; airports with no score come last
+    scored = [a.final_score for a in ranking if a.final_score is not None]
+    assert scored == sorted(scored, reverse=True)
+    first_none = next((i for i, a in enumerate(ranking) if a.final_score is None), len(ranking))
+    assert all(a.final_score is None for a in ranking[first_none:])
+
+    fmt = lambda v: "  -  " if v is None else f"{v:5.1f}"  # noqa: E731
+    print(f"\nFull ranking: {len(ranking)} airports in {elapsed:.3f} s. Top 10:")
+    print("rank  code  final  demand  strain")
+    for a in ranking[:10]:
+        print(f"{a.rank:>4}  {a.iata:<4}  {fmt(a.final_score)}  {fmt(a.demand_score)}   {fmt(a.strain_score)}")
