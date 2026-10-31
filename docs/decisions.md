@@ -315,6 +315,6 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 
 ## 8. Open decisions
 
-None left in the design. Implementation is planned in small, reviewed parts (0.2).
+None left in the design. Implementation is planned in small, reviewed parts (0.2): 20 steps, each built test-first, in [implementation-plan.md](implementation-plan.md). Small implementation details (P1–P10, e.g. how percentile ties are graded) are decided there.
 
 **Accepted gap:** terminal size and gate counts have no public source. Runways and traffic are used as stand-ins (runway load, measure S4 in [scoring.md](scoring.md)), and answers say so.

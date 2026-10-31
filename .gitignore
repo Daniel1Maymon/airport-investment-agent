@@ -4,6 +4,8 @@ data/
 *.zip
 *.duckdb
 *.duckdb.wal
+# ...except the small sample files the tests use
+!tests/fixtures/raw/**
 chat.sqlite
 *.sqlite
 
