@@ -7,6 +7,7 @@ Why we need:  This is the only place a measure is calculated. If two places calc
               to the same question. With one home, the score, the tables and the chat
               answer always show the same number.
 Used by:      app/tools/base.py (MEASURES, the allowed measure names).
+              app/presenters.py (MEASURES labels and units for the tables).
               app/tools/rank.py, app/tools/profile.py (compute_measures, YEAR).
               app/tools/trend.py (traffic_by_period, enplanements_by_year,
               delays_by_period), app/tools/routes.py (route_groups, route_totals),

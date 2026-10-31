@@ -6,7 +6,7 @@ Why we need:  Each cause has its own message because the user's next step differ
 Used by:      app/tools/base.py, app/tools/find.py ("airport_not_found"),
               app/agent/loop.py and app/agent/prompt.py.
               tests: test_step08_tool_base.py, test_step09_resolver.py, test_step14_agent_loop.py.
-              Planned: Step 16 backend API picks a message by its key.
+              app/presenters.py (refusal_dict picks a message by its key; used by app/api.py).
 Uses:         nothing (plain text only).
 Main parts:   REFUSALS - cause key -> message, one per row of the table in docs/agent.md.
               Refusal - a refusal sent to the user: its cause (a REFUSALS key) and message.

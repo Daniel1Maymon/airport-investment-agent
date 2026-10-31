@@ -6,7 +6,7 @@ Why we need:  The browser keeps only the chat ID; the server keeps the history, 
               follow-up question sees the earlier steps, even after a restart.
 Used by:      app/agent/loop.py, app/agent/cli.py.
               tests: test_step13_store.py, test_step14_agent_loop.py.
-              Planned: Step 16 backend API.
+              app/api.py (ChatStore).
 Uses:         the standard library only (sqlite3, json, uuid, datetime, dataclasses).
               No other project file.
 Main parts:   ChatStore - new_chat, exists, add_step, load_steps.

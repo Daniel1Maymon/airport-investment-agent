@@ -6,7 +6,8 @@ Why we need:  The AI picks tools and writes the text; Python runs the tools, kee
               history, enforces the round limit and picks the refusal messages.
 Used by:      app/agent/cli.py.
               tests: test_step14_agent_loop.py.
-              Planned: Step 15 question script, Step 16 backend API.
+              app/turn_runner.py (run_turn, in its own thread per turn).
+              scripts/ask_questions.py (run_turn, one per question).
 Uses:         app/store.py (ChatStore), app/tools (TOOLS, run_tool, tool_specs_for_ai),
               app/refusals.py (REFUSALS, Refusal), app/agent/prompt.py (SYSTEM_PROMPT),
               app/agent/provider.py (AIProvider, AIUnavailable).

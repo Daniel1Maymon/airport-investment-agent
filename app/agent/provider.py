@@ -5,7 +5,7 @@ What it is:   One small interface (`AIProvider.send`) and its one real version,
 Why we need:  The agent loop must not care which AI service answers. Tests pass a fake
               provider instead, so no test calls a real AI. Two errors tell apart "the AI
               is down" and "our quota or spend cap is used up".
-Used by:      app/agent/loop.py, app/agent/cli.py.
+Used by:      app/agent/loop.py, app/agent/cli.py, app/api.py (OpenRouterProvider).
               tests: fakes.py, test_step14_agent_loop.py.
 Uses:         httpx (HTTP calls to OpenRouter). No other project file.
 Main parts:   AIReply - one AI reply: text, tool_calls, model, input_tokens,

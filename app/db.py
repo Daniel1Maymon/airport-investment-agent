@@ -6,7 +6,7 @@ Why we need:  The app must never change airport data. Read-only makes every writ
 Used by:      app/agent/cli.py.
               tests: conftest.py, test_step00_setup.py, test_step05_build.py,
               test_step06_measures.py, test_step09_resolver.py.
-              Planned: Step 16 backend API.
+              app/turn_runner.py (open_airport_db, per turn), app/api.py (in GET /health).
 Uses:         the airport database file (`airports.duckdb`, built by loader/build.py).
 Main parts:   open_airport_db(path) - a read-only DuckDB connection to the file at `path`.
 Design:       docs/decisions.md 7.20; docs/agent.md "Safety".
