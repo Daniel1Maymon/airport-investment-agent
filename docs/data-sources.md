@@ -58,7 +58,10 @@ open(out, "wb").write(r.read())
 ## D. BTS On-Time Performance (delays, causes, taxi times)
 
 - `https://www.transtats.bts.gov/PREZIP/On_Time_Reporting_Carrier_On_Time_Performance_1987_present_{YEAR}_{MONTH}.zip` (month without leading zero, e.g. `2025_6`).
-- One flight per row, domestic flights of the larger US airlines only. ~31 MB zip / ~275 MB CSV per month, ~3.5 min download. Latest month seen: 2026_6. We load the 12 months of **2025** (~40 min, ~3.3 GB, one time).
+- One flight per row, domestic flights of the larger US airlines only. ~24–31 MB zip / ~240 MB CSV per month (January 2025: 539,747 flights). A download took ~3.5 min per month when first tested and about 1 min per month on 2026-10-31, so the speed depends on the BTS server. Latest month seen: 2026_6. We load the 12 months of **2025** (~340 MB of zips, ~3 GB of CSV, one time).
+- The zip holds the data file, named after the year and month (`On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2025_1.csv`), plus `readme.html`; the loader finds the CSV by its `.csv` ending. 110 columns; every line ends with a comma (an empty last column).
+- Palm Beach is still `PBI` here (5,886 times in January 2025); the loader renames it to `DJT` (decisions 7.6).
+- **Coverage (checked 2026-10-31, Step 4):** 2025 gives 7,898 rows for **341 of our 679 airports**, 6,953,969 departures. The other 338 airports are small ones served only by smaller or commuter airlines that don't report to On-Time. Of the 227 airports with 100,000+ boardings in 2025, only **2 have no delay data**: Tweed New Haven (`HVN`, CT, 737,789 boardings) and Wilmington (`ILG`, DE, 169,382), both served mainly by Avelo. Airports with delay data hold 99.7% of 2025 boardings. Airports without it are scored by the missing-delay rule ([scoring.md](scoring.md)).
 - Must be **reduced to totals per airport × month × direction while loading** (see `airport_delays` in [schema.md](schema.md)).
 - DuckDB reads `.gz` but not `.zip`: unpack with Python's `zipfile` first.
 - Delay-cause minutes (carrier, weather, NAS, security, late aircraft) are filled only for flights that arrived 15+ minutes late.
