@@ -240,7 +240,7 @@ The design docs didn't fix these details. They are written here so every session
 - **Sample files:** a test helper builds two small `.xlsx` files with openpyxl, using the real headers (`Rank, RO, ST, Locid, City, Airport Name, S/L, Hub, CY25, CY24, % Change`, and the `CY24, CY23` version). Include a summary row, an `IWA` row, a code with no translation, and one airport present in both files with different 2024 values.
 - **Tests (write first)** in `tests/test_step02_enplanements.py`:
   1. `test_one_file_gives_two_years`
-  2. `test_year_columns_found_by_label` (`CY25`/`CY24`, not by position)
+  2. `test_year_columns_found_by_label` (`CY 25 Enplanements`/`CY 24 Enplanements`, not by position)
   3. `test_two_files_cover_three_years`
   4. `test_newer_file_wins_on_overlap` (P7)
   5. `test_faa_code_translated` (`IWA` → `AZA`)
@@ -269,7 +269,7 @@ The design docs didn't fix these details. They are written here so every session
   7. `test_duplicate_rows_kept`
   8. `test_passenger_total_matches_file`
   9. `test_missing_column_fails_loudly`
-- **Real-data check:** about 570K rows per year; passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo.
+- **Real-data check:** about 570K rows per year; passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo. Check which code Palm Beach has in each year (`PBI` or `DJT`; decisions 7.6) and report it.
 - **Design:** [data-sources.md](data-sources.md) C, [schema.md](schema.md) `route_traffic`.
 
 ### Step 4: Delays

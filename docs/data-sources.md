@@ -18,7 +18,8 @@ Downloaded files are untrusted: keep them in their own directory and run any Pyt
 
 - `https://www.faa.gov/airports/planning_capacity/passenger_allcargo_stats/passenger/arp-cy2025-commercial-service-enplanements.xlsx`
 - Same URL with `cy2024`. Each file also has the previous year, so the two files cover **2023–2025**.
-- One sheet. Columns: `Rank, RO, ST, Locid, City, Airport Name, S/L, Hub, CY25, CY24, % Change` (year labels change per file).
+- One sheet. Columns: `Rank, RO, ST, Locid, City, Airport Name, S/L, Hub, CY 25 Enplanements, CY 24 Enplanements, % Change` (year labels change per file; checked on the real files 2026-10-31).
+- Summary rows at the bottom have no `Rank`, a count in `Locid` and a label in `City` (e.g. `Large Count`); some rows are blank. `Hub` is `L`/`M`/`S`/`N`, or the text `None` for airports the FAA gives no hub group (stored as empty).
 - `Locid` is the **FAA code**, not always the IATA code: 33 of 522 rows in 2025 differ (e.g. `IWA` = `AZA`). Convert via OurAirports `local_code`. Some rows are summary rows with no airport.
 - The file is small (~58 KB). It was parsed with Python's built-in `zipfile` + XML because no Excel library was installed; in the app, use a proper library.
 
