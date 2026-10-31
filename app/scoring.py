@@ -1,12 +1,29 @@
 """Grades and final score: turns the measure list into a ranked list of airports.
 
-WHAT THIS FILE DOES
-compute_measures() (app/measures.py) gives raw numbers in different units
-(fractions, minutes, departures). To add them up, each of the six scored
-measures is first turned into a percentile grade from 0 to 100: "higher than
-X% of the US airports graded". The final score is a weighted average of the
-grades (docs/scoring.md):
+What it is:   Turns each of the six scored measures into a percentile grade from 0 to 100
+              ("higher than X% of the US airports graded"), then a weighted average of
+              the grades gives the final score.
+Why we need:  compute_measures() (app/measures.py) gives raw numbers in different units
+              (fractions, minutes, departures). They can only be added up on one scale.
+Used by:      tests: test_step07_scoring.py only, so far.
+              Planned: Step 10 tools `rank_airports` and `airport_profile`
+              (app/tools/rank.py, app/tools/profile.py).
+Uses:         the dict from compute_measures(), passed in by the caller. No database and
+              no project imports.
+Main parts:   DEFAULT_WEIGHTS - weight key (D1..S4) -> weight; they total 100.
+              WEIGHT_MEASURES - weight key -> measure name (P15).
+              DEMAND_KEYS, STRAIN_KEYS - the weight keys of each half of the score.
+              DELAY_MEASURES - the two scored measures that come from delay data.
+              FLAG_FULL, FLAG_NAS, FLAG_NO_DELAYS - the exact flag texts (P19).
+              WeightsError - weights with an unknown key, a negative value, or not 100.
+              ScoredAirport - one airport's raw measures, grades, scores, rank, flags,
+                missing.
+              percentile_grades(values) - grade each airport 0-100 against the others.
+              score_airports(measures, weights=None, min_enplanements=100_000) - grade,
+                score and rank every airport that passes the size filter, best first.
+Design:       docs/scoring.md; docs/implementation-plan.md P1, P13-P22.
 
+THE WEIGHTS (docs/scoring.md)
   Demand 40%: D1 growth_long 20, D2 growth_short 20
   Strain 60%: S1 load_factor 20, S2 nas_delay_per_flight 15,
               S3 taxi_out_min 10, S4 departures_per_runway 15

@@ -1,5 +1,24 @@
 """BTS T-100 loader: the `route_traffic` table (docs/data-sources.md C, docs/schema.md).
 
+What it is:   Downloads the BTS T-100 Segment data and loads it into `route_traffic`:
+              flights, seats, passengers and distance per route, airline and month.
+Why we need:  Most measures come from it: passengers, seats, load factor, growth since
+              2019, long-haul share, missing seats, departures per runway.
+Used by:      loader/build.py. tests: test_step03_route_traffic.py,
+              test_step03_code_renames.py, test_step05_build.py (through build).
+Uses:         the BTS download page and the downloaded zip files; writes the
+              route_traffic table. loader/common.py (CODE_RENAMES, LoadReport).
+Main parts:   T100_URL - the BTS download page.
+              DATA_MEMBER - the name of the data file inside the zip.
+              DOWNLOAD_FIELDS - the columns we ask BTS for.
+              REQUIRED_COLUMNS - the columns a file must have before loading.
+              INSERT_SQL, INSERT_PARAMS - the bulk load query and its values.
+              parse_hidden_fields(html) - the hidden ASP.NET form fields, name -> value.
+              download_t100(year, dest_dir) - download one year as a zip.
+              load_route_traffic(zip_paths, con) - replace route_traffic from the zips.
+Design:       docs/data-sources.md C; docs/schema.md `route_traffic`; docs/decisions.md
+              7.6; docs/implementation-plan.md P6.
+
 The BTS page has no direct download link. It is an ASP.NET form: we GET it,
 copy its hidden `__...` fields, and POST them back with the year and the
 columns we want. The answer is a zip holding `Documentation.csv` and the data

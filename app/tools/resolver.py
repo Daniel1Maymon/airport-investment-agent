@@ -1,9 +1,29 @@
 """The name resolver: turns what the user typed into airport codes from our own list.
 
-It never guesses. It only returns airports that are in our `airports` table,
-and an empty list means "airport not found". The matching is done in Python on
-the rows read by one fixed query, so the user's text never goes into SQL, and
-characters like `%` or `_` are just characters.
+What it is:   Finds the airports that match what the user typed (a code, a short city
+              name, a city, an airport name), and holds the US Census regions.
+Why we need:  It never guesses. It only returns airports that are in our `airports`
+              table, and an empty list means "airport not found".
+Used by:      app/tools/base.py (run_tool turns airport names in settings into codes),
+              app/tools/find.py. tests: test_step09_resolver.py.
+Uses:         tables airports and enplanements (2025 hub type), through one fixed query.
+              No other project file.
+Main parts:   HUB_SIZES - FAA hub letter -> size in words (P26).
+              SIZE_YEAR - the year of the hub size (2025).
+              ABBREVIATIONS - short city names: LA, NYC, SF, DC (P5).
+              REGIONS - Census region or division -> its states.
+              AIRPORTS_SQL - the one fixed query.
+              AirportMatch - one airport found: iata, name, city, state, size.
+              load_airports(con) - every airport as (AirportMatch, lat, lon), by code.
+              resolve_airport(con, text) - airports matching `text` (rules of P25);
+                [] means not found.
+              resolve_region(name) - the states of a region or division; unknown gives
+                ValueError.
+Design:       docs/agent.md "Name resolver"; docs/tools.md "1. find_airports";
+              docs/implementation-plan.md P5, P25, P26.
+
+The matching is done in Python on the rows read by one fixed query, so the user's
+text never goes into SQL, and characters like `%` or `_` are just characters.
 """
 
 from typing import NamedTuple

@@ -1,5 +1,22 @@
 """FAA boardings loader: the `enplanements` table (docs/data-sources.md B, docs/schema.md).
 
+What it is:   Downloads the FAA boardings (enplanements) Excel files and loads them into
+              the `enplanements` table: boardings and FAA hub size per airport and year.
+Why we need:  Boardings give airport size (the size filter, the hub size) and the
+              short-term growth from 2024 to 2025.
+Used by:      loader/build.py. tests: test_step02_enplanements.py,
+              test_step03_code_renames.py, test_step05_build.py (through build).
+Uses:         the downloaded FAA .xlsx files; the FAA -> IATA code map made by
+              loader/airports.py (passed in by build); writes the enplanements table.
+              loader/common.py (CODE_RENAMES, LoadReport).
+Main parts:   FAA_URL - the download address.
+              YEAR_LABEL - finds the year in a column header such as `CY 25 Enplanements`.
+              download_faa(years, dest_dir) - download the file for each year; return paths.
+              load_enplanements(xlsx_paths, faa_to_iata, con) - replace the enplanements
+                table from the .xlsx files.
+Design:       docs/data-sources.md B; docs/schema.md `enplanements`; docs/decisions.md
+              7.6; docs/implementation-plan.md P7.
+
 Each FAA file gives two years (e.g. `CY 25 Enplanements`, `CY 24 Enplanements`).
 Downloaded files are untrusted: columns are found by header name, values go to
 SQL as parameters, never as text.

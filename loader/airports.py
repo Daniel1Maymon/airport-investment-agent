@@ -1,5 +1,21 @@
 """OurAirports loader: the `airports` table (docs/data-sources.md A, docs/schema.md).
 
+What it is:   Downloads the OurAirports files airports.csv and runways.csv and loads
+              them into the `airports` table; also maps FAA codes to IATA codes.
+Why we need:  Every other table and every tool works on this list of airports.
+Used by:      loader/build.py. tests: test_step01_airports.py, test_step05_build.py
+              (through build).
+Uses:         the downloaded airports.csv and runways.csv; writes the airports table.
+              loader/common.py (LoadReport).
+Main parts:   AIRPORTS_URL, RUNWAYS_URL - where the two files are downloaded from.
+              NAME_MAX - names are cut to 100 characters (P4).
+              LOAD_SQL - the one query that fills the table.
+              download_ourairports(dest_dir) - download both files; return their paths.
+              load_airports(airports_csv, runways_csv, con) - replace the airports table.
+              faa_to_iata(airports_csv) - FAA code -> IATA code, for US airports with both.
+Design:       docs/data-sources.md A; docs/schema.md `airports`; docs/agent.md "Safety"
+              (names); docs/implementation-plan.md P4.
+
 Downloaded files are untrusted: we keep only the fields we need, cut names to
 100 characters (P4), and pass file paths to SQL as parameters, never as text.
 """

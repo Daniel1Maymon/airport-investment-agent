@@ -1,5 +1,22 @@
 """BTS On-Time loader: the `airport_delays` table (docs/data-sources.md D, docs/schema.md).
 
+What it is:   Downloads the BTS On-Time monthly files and stores totals per airport,
+              month and direction in the `airport_delays` table.
+Why we need:  Delays, delay causes, taxi times and cancellations come from here.
+Used by:      loader/build.py. tests: test_step04_delays.py, test_step05_build.py
+              (through build).
+Uses:         the downloaded On-Time zip files; the airports table (to keep only our
+              airports); writes the airport_delays table.
+              loader/common.py (CODE_RENAMES, LoadReport).
+Main parts:   ONTIME_URL - the download address.
+              REQUIRED_COLUMNS - the columns a file must have before anything changes.
+              INSERT_SQL, INSERT_PARAMS - the one GROUP BY query that fills the table,
+                and its values.
+              download_ontime(year, month, dest_dir) - download one month as a zip.
+              load_airport_delays(zip_paths, con) - replace airport_delays from the zips.
+Design:       docs/data-sources.md D; docs/schema.md `airport_delays`;
+              docs/decisions.md 7.6.
+
 The On-Time files list every single flight of the larger US airlines: about
 540K flights (~240 MB of CSV) per month. We only need totals, so each month is
 reduced while loading to one row per airport x month x direction: `dep` for the

@@ -81,6 +81,19 @@ The Rules below apply to both sub-agents; include them in their instructions.
 - **Stay in your step.** Don't build things from later steps, even small ones.
 - **No new library without asking.** If your step needs one that is not in `requirements.txt`, ask the user. Once approved, add it to `requirements.txt` with an exact version and install it into the shared `.venv`. Never `pip install` anything that isn't written in `requirements.txt`.
 - **Don't change an earlier step's Interface** or its tests. If you think one is wrong, stop and ask.
+- **File header.** Every file in `app/` and `loader/` starts with a docstring in this fixed format (agreed with the user 2026-10-31). Package `__init__.py` files that only hold one line are exempt. Test files start with one line naming the step they test.
+  ```python
+  """<One line: what this file is.>
+
+  What it is:   <a bit more detail, in plain words>
+  Why we need:  <the problem it solves>
+  Used by:      <the files that call it>
+  Uses:         <what it reads or depends on: tables, other files>
+  Main parts:   <each public function/class, one line each>
+  Design:       <where the decision is written in docs/>
+  """
+  ```
+  The labels are fixed, always in this order. A step that starts using a file adds itself to that file's **Used by** line, so the line doesn't go out of date. Older explanation text that doesn't fit a label stays below the header.
 - **The tiny dataset** (`tests/fixtures/tiny_data.py`, built in Step 0) is shared by every step. The test writer may **add** rows or airports when your tests need them, only if the whole suite still passes. Never change existing values. Record what you added in `tests/fixtures/TINY_DATA.md`.
 - **Expected values in tests are worked out by hand** from the tiny dataset and written in the test with a short comment showing the math (for example `# 900 / 0.80 - 1000 = 125`). Never take an expected value from running the code.
 - **If a test compares against a doc** (for example "every measure in tools.md exists"), the test must read and parse that doc at run time, not copy its contents.

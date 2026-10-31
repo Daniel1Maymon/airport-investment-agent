@@ -1,8 +1,32 @@
 """What every tool shares: the result format, the tool list, setting checks, run_tool.
 
-The AI never writes SQL. It sends a tool name and settings; `run_tool` checks the
-settings with the tool's pydantic model and only then runs the tool. A bad
-setting or an unknown tool gives the AI an error that lists the allowed values,
+What it is:   The common frame of all agent tools: the result format, the tool list, the
+              shared setting types and checks, and run_tool, the only way a tool is run.
+Why we need:  The AI never writes SQL. It sends a tool name and settings; run_tool checks
+              the settings with the tool's pydantic model and only then runs the tool.
+Used by:      app/tools/find.py.
+              tests: test_step08_tool_base.py, test_step09_resolver.py.
+              Planned: the tool files of Steps 10-12 and the Step 14 agent loop.
+Uses:         app/measures.py (MEASURES), app/refusals.py (REFUSALS),
+              app/tools/resolver.py (resolve_airport, which reads the airports table).
+Main parts:   US_STATES - the 50 states + DC.
+              Allowed - marker on a setting type: the allowed values shown on an error.
+              AIRPORT_NAMES - marker: the setting holds airport names to turn into codes.
+              SettingsError - raised by a settings model's own check, with allowed values.
+              TopN, AirportList, AirportCode, State, StateList, MeasureName - shared
+                setting types for the tools' settings models.
+              ToolResult(data, about) - what every tool returns; .to_dict().
+              Tool - one registered tool: name, description, settings_model, fn.
+              TOOLS - the tool list: name -> Tool.
+              register(name, description, settings_model) - decorator that adds a tool.
+              run_tool(con, name, settings) - check the settings, turn airport names into
+                codes, run the tool; returns a dict and never raises for a bad setting.
+              tool_specs_for_ai() - the tool descriptions sent to the AI, sorted by name.
+Design:       docs/tools.md "How a tool call works" and "Limits that apply to every tool";
+              docs/agent.md "What every tool returns"; docs/decisions.md 7.13, 7.19;
+              docs/implementation-plan.md P24, P28.
+
+A bad setting or an unknown tool gives the AI an error that lists the allowed values,
 so it can correct itself, and nothing runs.
 """
 

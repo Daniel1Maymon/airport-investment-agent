@@ -1,4 +1,21 @@
-"""Tool 1, `find_airports`: find airports in our list by name, place, size or distance."""
+"""Tool 1, `find_airports`: find airports in our list by name, place, size or distance.
+
+What it is:   The find_airports tool: filters our airport list by name, city or code, by
+              states, by Census region, by FAA hub size, or by distance from an airport.
+Why we need:  People name places, not codes ("LA", "New England"). This lists the matching
+              airports, so the AI picks codes from our list and never guesses one.
+Used by:      app/tools/__init__.py (the import registers the tool); the AI calls it
+              through run_tool. tests: test_step09_resolver.py.
+Uses:         app/tools/base.py, app/tools/resolver.py, app/refusals.py; the tables
+              airports and enplanements (2025 hub size), read through the resolver.
+Main parts:   MAX_ROWS, DEFAULT_MILES, EARTH_RADIUS_MI, FILTERS, SIZES - fixed limits
+                and choices.
+              Region, Size, Miles - setting types of this tool.
+              FindSettings - the tool's settings; at least one filter must be given.
+              find_airports(con, settings) - the tool; a ToolResult with up to 25 airports.
+Design:       docs/tools.md "1. find_airports"; docs/agent.md "Name resolver";
+              docs/implementation-plan.md P26, P27.
+"""
 
 from math import asin, cos, radians, sin, sqrt
 from typing import Annotated, Literal

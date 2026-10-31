@@ -1,9 +1,33 @@
 """The shared measure list: every per-airport number the app uses.
 
-WHAT THIS FILE DOES
-The database holds raw rows: airports, passenger counts, routes and delays.
-This file turns those rows into the numbers the agent talks about, for each
-of the 679 airports. For example:
+What it is:   Turns the raw database rows (airports, passenger counts, routes, delays)
+              into the numbers the agent talks about, for each of the 679 airports.
+Why we need:  This is the only place a measure is calculated. If two places calculated
+              "load factor", they could slowly drift apart and give two different answers
+              to the same question. With one home, the score, the tables and the chat
+              answer always show the same number.
+Used by:      app/tools/base.py (MEASURES, the allowed measure names).
+              app/scoring.py takes the result of compute_measures() as input (no import).
+              tests: test_step06_measures.py, test_step07_scoring.py,
+              test_step08_tool_base.py.
+              Planned: the Steps 10-12 tools call compute_measures() to rank and compare
+              airports; Step 12 `unmet_demand` calls monthly_missing_seats() for "what is
+              the unmet demand at SFO, and why?".
+Uses:         tables airports, route_traffic, airport_delays, enplanements (read only).
+              No other project file.
+Main parts:   YEAR - the year the measures are for (2025).
+              MeasureInfo - one measure's group, plain label, unit and source table(s).
+              MEASURES - measure name -> MeasureInfo; matches docs/tools.md (a test checks).
+              missing_seats(passengers, seats, target_load_factor) - one month's missing
+                seats, never below 0.
+              compute_measures(con, long_haul_miles=3000, target_load_factor=0.85) - every
+                measure for every airport: {code: {measure: value or None}}.
+              monthly_missing_seats(con, iata, target_load_factor) - one airport's missing
+                seats month by month, with the yearly totals.
+Design:       docs/tools.md "The shared measure list" and "Unmet demand: how it becomes
+              an amount"; docs/implementation-plan.md P2, P3, P6, P11, P12.
+
+THE MEASURES, FOR EXAMPLE
   - load factor: how full the planes are (passengers / seats)
   - growth: how fast passenger numbers went up (2024->2025, 2019->2025)
   - NAS delay per flight: delay minutes caused by the air traffic system
@@ -14,20 +38,6 @@ of the 679 airports. For example:
   - top airline share: how much the airport depends on one airline
   - missing seats: our estimate of unmet demand. Month by month, how many
     more seats were needed to keep planes at a target fullness (80-85%).
-
-WHO USES IT, AND HOW
-  - Scoring (app/scoring.py, Step 7) calls compute_measures() to get every
-    number for every airport, then turns them into grades and a final score.
-  - The agent's tools (Steps 10-12) call compute_measures() to rank and
-    compare airports, and monthly_missing_seats() to answer "what is the
-    unmet demand at SFO, and why?" with the month-by-month detail.
-
-WHY ONE FILE
-This is the only place a measure is calculated. If two places calculated
-"load factor", they could slowly drift apart and give two different answers
-to the same question. With one home, the score, the tables and the chat
-answer always show the same number. The list of names (MEASURES) matches
-docs/tools.md, "The shared measure list"; a test checks that.
 
 UNITS (P11): shares, growth, load factor and missing_seats_pct are fractions
 (0.823 means 82.3%). Counts are plain numbers. Missing data gives None.

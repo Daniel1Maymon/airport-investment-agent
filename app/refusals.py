@@ -1,7 +1,15 @@
 """Fixed refusal messages, one per cause (docs/agent.md, "Refusal messages").
 
-Each cause has its own message because the user's next step differs: an AI
-outage must not look like "no data". Steps 14 and 16 pick a message by its key.
+What it is:   The fixed messages the user sees when we can't answer, one per cause.
+Why we need:  Each cause has its own message because the user's next step differs: an AI
+              outage must not look like "no data".
+Used by:      app/tools/base.py, app/tools/find.py ("airport_not_found").
+              tests: test_step08_tool_base.py, test_step09_resolver.py.
+              Planned: Step 14 agent loop and Step 16 backend API pick a message by its key.
+Uses:         nothing (plain text only).
+Main parts:   REFUSALS - cause key -> message, one per row of the table in docs/agent.md.
+              Refusal - a refusal sent to the user: its cause (a REFUSALS key) and message.
+Design:       docs/agent.md "Refusal messages"; docs/implementation-plan.md P23.
 """
 
 from typing import NamedTuple
