@@ -45,7 +45,7 @@ All airport codes are IATA codes (see 7.6). Primary keys yes, foreign keys no (s
 
 No natural primary key (BTS can report the same combination twice); the loader checks totals instead.
 
-**`airport_delays`**: one row per airport × month × direction (2025; ~10K rows). Source: BTS On-Time, reduced from ~3 GB of single flights to totals while loading.
+**`airport_delays`**: one row per airport × month × direction (2025; 7,898 rows for 341 airports). Source: BTS On-Time, reduced from ~3 GB of single flights to totals while loading.
 
 | Column | Meaning |
 |---|---|

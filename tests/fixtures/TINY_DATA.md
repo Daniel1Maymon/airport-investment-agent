@@ -214,3 +214,72 @@ BOS is the clean case: 100 seats per departure on every row, so missing flights 
 - Duplicate pair R11 + R12: 2 rows, 600 + 600 = 1,200 passengers.
 
 The two-zip test adds a 2024 zip built in `tmp_path` (3 rows: B6 BOS→JFK 100 passengers, AA LAX→BOS 200, 5X ANC→HKG cargo 0): 3 rows, **300** passengers.
+
+## Step 4 sample: ontime_sample.zip
+
+`tests/fixtures/raw/ontime_sample.zip` is a made-up BTS On-Time download, built by `tests/fixtures/make_ontime_sample.py` (`.venv/bin/python -m tests.fixtures.make_ontime_sample`). It copies the real January 2025 file's format: the zip holds `On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2025_1.csv` and `readme.html`; all 110 columns in the real order, with the header names in double quotes and a trailing comma on every line (so the 110th column has an empty name); LF line endings; text in double quotes (`""` when empty); whole numbers such as `Year`, `Month` and airport IDs without decimals; measured numbers with two decimals (`23.00`); empty numbers written as nothing. Cancelled flights have no DepDel15, ArrDel15, TaxiOut or TaxiIn; the diverted flight has a TaxiIn but no ArrDel15; cause minutes are filled only on flights that arrived 15+ minutes late, and add up to the arrival delay. Palm Beach is written `PBI`, as in the real January file. It is separate from the tiny database above.
+
+The one CSV holds both months (January and February 2025); year and month come from the `Year` and `Month` columns. The tests insert their own airports: **JFK, LAX, BOS, DJT, SFO** (SFO has no flights). **PSE** (Ponce, Puerto Rico) is not in the list; **PBI** becomes DJT through `CODE_RENAMES`.
+
+| Flight | Month | Airline | Route | Kind | Dep delay | Arr delay | Taxi-out | Taxi-in | Causes (minutes) |
+|---|---|---|---|---|---|---|---|---|---|
+| F1 | 1 | AA | JFK→LAX | | -3 | -7 | 20 | 10 | |
+| F2 | 1 | AA | JFK→LAX | | 0 | -5 | 30 | 6 | |
+| F3 | 1 | AA | JFK→LAX | late both ends | 110 | 120 | 40 | 8 | carrier 100, NAS 20 |
+| F4 | 1 | AA | JFK→LAX | **cancelled** (A) | | | | | |
+| F5 | 1 | B6 | JFK→BOS | | -2 | -4 | 10 | 4 | |
+| F6 | 1 | B6 | BOS→JFK | late on arrival only | 5 | 30 | 25 | 12 | NAS 30 |
+| F7 | 1 | B6 | BOS→JFK | **cancelled** (B) | | | | | |
+| F8 | 1 | AA | LAX→JFK | | -1 | -10 | 18 | 9 | |
+| F9 | 1 | AA | LAX→JFK | **diverted** (via LAS) | 2 | (none) | 14 | 15 | |
+| F10 | 1 | DL | LAX→BOS | late both ends | 70 | 80 | 22 | 7 | weather 50, NAS 10, security 5, late aircraft 15 |
+| F11 | 1 | B6 | **PSE**→JFK | from an unlisted airport | 0 | -2 | 12 | 11 | |
+| F12 | 1 | B6 | JFK→**PSE** | to an unlisted airport, late | 50 | 60 | 35 | 5 | carrier 60 (dropped with the PSE side) |
+| F13 | 1 | B6 | **PBI**→JFK | Palm Beach, old code | -4 | -6 | 16 | 13 | |
+| F14 | 1 | B6 | JFK→**PBI** | late on arrival only | 10 | 40 | 24 | 6 | late aircraft 40 |
+| F15 | 1 | B6 | BOS→LAX | | 0 | 3 | 20 | 10 | |
+| F16 | 2 | AA | JFK→LAX | | 1 | -3 | 25 | 5 | |
+| F17 | 2 | AA | JFK→LAX | **cancelled** (C) | | | | | |
+| F18 | 2 | AA | JFK→LAX | late both ends | 85 | 90 | 45 | 15 | NAS 60, late aircraft 30 |
+| F19 | 2 | AA | LAX→JFK | | -5 | -8 | 15 | 7 | |
+| F20 | 2 | AA | LAX→JFK | | 3 | 0 | 17 | 9 | |
+| F21 | 2 | B6 | BOS→JFK | | -2 | -1 | 19 | 11 | |
+| F22 | 2 | B6 | JFK→BOS | late on departure only | 20 | 10 | 20 | 3 | |
+| F23 | 2 | B6 | JFK→BOS | **cancelled** (A) | | | | | |
+| F24 | 2 | B6 | **PSE**→JFK | from an unlisted airport, late | 8 | 25 | 10 | 20 | weather 25 |
+| F25 | 2 | B6 | **PBI**→BOS | Palm Beach, old code | 0 | 2 | 14 | 8 | |
+| F26 | 2 | B6 | BOS→**PBI** | **cancelled** (B) | | | | | |
+| F27 | 2 | DL | BOS→LAX | late both ends | 40 | 45 | 30 | 10 | carrier 45 |
+| F28 | 2 | AA | LAX→JFK | **cancelled** (A) | | | | | |
+
+"Late" means 15+ minutes (DepDel15 / ArrDel15 = 1).
+
+**Hand-worked `airport_delays` rows (16 = 4 airports × 2 months × 2 directions, all 2025):**
+
+| iata | month | dir | flights | cancelled | delayed_15 | avg_taxi_min | nas | carrier | weather | late_aircraft | security |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| JFK | 1 | dep | 7 (F1–F5, F12, F14) | 1 | 2 (F3, F12) | 159 / 6 = 26.5 | NULL | NULL | NULL | NULL | NULL |
+| BOS | 1 | dep | 3 (F6, F7, F15) | 1 | 0 | 45 / 2 = 22.5 | NULL | NULL | NULL | NULL | NULL |
+| LAX | 1 | dep | 3 (F8, F9, F10) | 0 | 1 (F10) | 54 / 3 = 18 | NULL | NULL | NULL | NULL | NULL |
+| DJT | 1 | dep | 1 (F13) | 0 | 0 | 16 | NULL | NULL | NULL | NULL | NULL |
+| LAX | 1 | arr | 5 (F1–F4, F15) | 1 | 1 (F3) | 34 / 4 = 8.5 | 20 | 100 | 0 | 0 | 0 |
+| BOS | 1 | arr | 2 (F5, F10) | 0 | 1 (F10) | 11 / 2 = 5.5 | 10 | 0 | 50 | 15 | 5 |
+| JFK | 1 | arr | 6 (F6–F9, F11, F13) | 1 | 1 (F6) | 60 / 5 = 12 | 30 | 0 | 0 | 0 | 0 |
+| DJT | 1 | arr | 1 (F14) | 0 | 1 | 6 | 0 | 0 | 0 | 40 | 0 |
+| JFK | 2 | dep | 5 (F16–F18, F22, F23) | 2 | 2 (F18, F22) | 90 / 3 = 30 | NULL | NULL | NULL | NULL | NULL |
+| LAX | 2 | dep | 3 (F19, F20, F28) | 1 | 0 | 32 / 2 = 16 | NULL | NULL | NULL | NULL | NULL |
+| BOS | 2 | dep | 3 (F21, F26, F27) | 1 | 1 (F27) | 49 / 2 = 24.5 | NULL | NULL | NULL | NULL | NULL |
+| DJT | 2 | dep | 1 (F25) | 0 | 0 | 14 | NULL | NULL | NULL | NULL | NULL |
+| LAX | 2 | arr | 4 (F16–F18, F27) | 1 | 2 (F18, F27) | 30 / 3 = 10 | 60 | 45 | 0 | 30 | 0 |
+| JFK | 2 | arr | 5 (F19–F21, F24, F28) | 1 | 1 (F24) | 47 / 4 = 11.75 | 0 | 0 | 25 | 0 | 0 |
+| BOS | 2 | arr | 3 (F22, F23, F25) | 1 | 0 | 11 / 2 = 5.5 | 0 | 0 | 0 | 0 | 0 |
+| DJT | 2 | arr | 1 (F26) | 1 | 0 | NULL (only a cancelled flight) | 0 | 0 | 0 | 0 | 0 |
+
+**Hand-worked totals:**
+- Flights: dep 26 (28 − F11, F24 from PSE), arr 27 (28 − F12 to PSE), all rows **53**. January 28, February 25.
+- Cancelled: 6 flights (F4, F7, F17, F23, F26, F28), each on a dep and an arr row = **12**.
+- Delayed 15+: dep **6** (F3, F10, F12, F18, F22, F27); arr **7** (F3, F6, F10, F14, F18, F24, F27; F12 went to PSE).
+- Cause minutes, all rows: NAS **120**, carrier **145** (F12's 60 is dropped with PSE), weather **75**, late aircraft **85**, security **5**.
+- Cancelled flights skipped in taxi averages: counting F4 as 0 would give JFK Jan dep 159 / 7 = 22.71 instead of 26.5. The diverted F9 counts: JFK Jan arr 60 / 5 = 12 (without it 45 / 4 = 11.25).
+
+Other zips are built in `tmp_path` with the same writer: one with `readme.html` first (same 16 rows), January and February as two single-month zips (the same table as the combined sample), and one with the `NASDelay` column missing (must fail and leave the table unchanged).

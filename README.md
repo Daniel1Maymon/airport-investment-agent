@@ -82,6 +82,71 @@ design. The flow is the design.
 | Chat history | Every step of every chat in SQLite, with cost per AI reply | [schema.md](docs/schema.md) |
 | API + chat page | 3 addresses; tables built by Python straight from tool results | [api.md](docs/api.md) |
 
+## How the data serves the investment question
+
+Every table answers one investor question: **which airports need renovation
+most, and will the money pay off?** The answer has two halves:
+
+- **Demand:** are more people coming?
+- **Strain:** is the airport already too crowded?
+
+An airport that scores high on both is a strong renovation candidate.
+
+```
+                         "Where should we invest in renovation?"
+                                         │
+                ┌────────────────────────┴────────────────────────┐
+                ▼                                                 ▼
+       DEMAND (40% of score)                            STRAIN (60% of score)
+     "Are more people coming?"                     "Is it already overcrowded?"
+                │                                                 │
+     ┌──────────┴──────────┐                ┌──────────┬──────────┼──────────────┐
+     ▼                     ▼                ▼          ▼          ▼              ▼
+ D1 passenger         D2 boardings      S1 planes   S2 delay   S3 taxi-out   S4 flights
+ growth 2019→2025     growth 2024→2025  how full    from air-  time (waiting per runway
+                                        (load       traffic    to take off)
+                                        factor)     crowding
+     │                     │                │          │          │              │
+     ▼                     ▼                ▼          ▼          ▼              ▼
+ route_traffic        enplanements     route_traffic  airport_   airport_    route_traffic
+                                                      delays     delays      + airports
+```
+
+The **load factor** is the share of seats that are filled: a plane with 100
+seats and 85 passengers has a load factor of 85%.
+
+| Table | What it tells the investor |
+|---|---|
+| `airports` | **Where** it is and **how big**: city, state, runways. Needed for regions ("New England") and for flights per runway. |
+| `enplanements` | **How many people board** each year. Growth means rising demand. Also the size filter: under 100,000 boardings a year is too small to rank. |
+| `route_traffic` | **Flights, seats and passengers** per route, airline and month. Shows whether planes are full (no room left) and how traffic grew since 2019, plus long-haul and international routes. |
+| `airport_delays` | **Signs of crowding**: delays caused by air-traffic and airport congestion (NAS delay), and long waits to take off. One row per airport, month and direction (leaving or arriving). |
+| `data_sources` | **Where the numbers came from** and which period, so every answer states its source. |
+
+The four exam questions use the tables like this:
+
+```
+ Q1 "Best New England airports for terminal expansion?"
+     → airports (region) + all score measures → ranking
+
+ Q2 "Compare congestion at LAX and SNA"
+     → airport_delays (delays, taxi time) + route_traffic (how full, flights per runway)
+
+ Q3 "What % of Anchorage flights are long-haul?"
+     → route_traffic (distance of each route)
+
+ Q4 "How much unmet demand at SFO, and why?"
+     → route_traffic: months where planes were too full = seats missing
+     → airport_delays: the "why" (crowding, delays)
+```
+
+The full chain:
+
+```
+ public data files ──► 5 tables ──► measures ──► score ──► AI explains it in chat
+   (loader)           airports.duckdb  (Python)    (Python)
+```
+
 ## The AI agent
 
 ```
