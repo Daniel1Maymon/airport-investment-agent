@@ -81,6 +81,19 @@ The Rules below apply to both sub-agents; include them in their instructions.
 - **Stay in your step.** Don't build things from later steps, even small ones.
 - **No new library without asking.** If your step needs one that is not in `requirements.txt`, ask the user. Once approved, add it to `requirements.txt` with an exact version and install it into the shared `.venv`. Never `pip install` anything that isn't written in `requirements.txt`.
 - **Don't change an earlier step's Interface** or its tests. If you think one is wrong, stop and ask.
+- **File header.** Every file in `app/` and `loader/` starts with a docstring in this fixed format (agreed with the user 2026-10-31). Package `__init__.py` files that only hold one line are exempt. Test files start with one line naming the step they test.
+  ```python
+  """<One line: what this file is.>
+
+  What it is:   <a bit more detail, in plain words>
+  Why we need:  <the problem it solves>
+  Used by:      <the files that call it>
+  Uses:         <what it reads or depends on: tables, other files>
+  Main parts:   <each public function/class, one line each>
+  Design:       <where the decision is written in docs/>
+  """
+  ```
+  The labels are fixed, always in this order. A step that starts using a file adds itself to that file's **Used by** line, so the line doesn't go out of date. Older explanation text that doesn't fit a label stays below the header.
 - **The tiny dataset** (`tests/fixtures/tiny_data.py`, built in Step 0) is shared by every step. The test writer may **add** rows or airports when your tests need them, only if the whole suite still passes. Never change existing values. Record what you added in `tests/fixtures/TINY_DATA.md`.
 - **Expected values in tests are worked out by hand** from the tiny dataset and written in the test with a short comment showing the math (for example `# 900 / 0.80 - 1000 = 125`). Never take an expected value from running the code.
 - **If a test compares against a doc** (for example "every measure in tools.md exists"), the test must read and parse that doc at run time, not copy its contents.
@@ -180,6 +193,10 @@ The design docs didn't fix these details. They are written here so every session
 | P22 | No final score | With custom weights an airport may have no value for any weighted measure (e.g. `{"D1": 100}` and no 2019 traffic). Its `final_score` is `None` (as P18 for the halves) and it is placed last, still ordered by IATA code. Approved 2026-10-31 (Step 7). |
 | P23 | Refusal keys | The refusal table in agent.md has a **Key** column (`no_data`, `airport_not_found`, `chat_not_found`, `out_of_scope`, `ai_unavailable`, `too_many_steps`, `question_too_long`, `busy`, `internal_error`). `REFUSALS` uses exactly these keys; Steps 14 and 16 pick a message by its key. Approved 2026-10-31 (Step 8). |
 | P24 | Tool setting checks | `about` always has its four keys (empty `""`/`[]` when not given). Errors: unknown tool → `allowed` = tool names; number out of range → `allowed` = `[min, max]`; too many airports → `[1, 5]`; unknown state → the 51 codes; unknown measure → `MEASURES` names; unknown setting name → the tool's setting names. `US_STATES` is a fixed list in code (50 states + DC); `"ca"` is accepted as `"CA"`. Tool specs use the OpenAI function format OpenRouter takes. A tool's own crash is not caught by `run_tool` (Step 16 turns it into "internal error"). The shared setting types also work when wrapped as optional (`StateList \| None = None`): the error still lists the allowed values. Approved 2026-10-31 (Step 8). |
+| P25 | Name resolver order | `resolve_airport` tries, in this order, and **stops at the first rule that finds something**: (1) the text is a code in our `airports` table, any case (`sfo` → SFO); (2) a P5 abbreviation, any case (`LA`, `NYC`, `SF`, `DC`) → every airport whose city is that city; (3) exact city, any case; (4) exact airport name, any case; (5) part of the airport name, any case, only for text of 3+ characters. Spaces at the ends are ignored. Matches are sorted by code. `AirportMatch(iata, name, city, state, size)`, `size` as in P26. So "Boston" stops at rule 3 and gives only BOS, not Manchester-Boston. Approved 2026-10-31 (Step 9). |
+| P26 | Airport size | `size` = the FAA hub size of **2025** from `enplanements.hub_type`: `L` → `large`, `M` → `medium`, `S` → `small`, `N` → `non-hub`. No 2025 hub type → `None`; a `size` filter leaves such airports out, and `about.missing` says so. Not `airports.size_class` (OurAirports' type, a different thing). Approved 2026-10-31 (Step 9). |
+| P27 | `find_airports` rules | Settings: `text` (1–100 characters), `states` (`StateList`), `region`, `size` (`large`/`medium`/`small`/`non-hub`), `near_airport` (one airport, `AirportCode`), `within_miles` (1–500; 50 when not given). **At least one** of `text`, `states`, `region`, `size`, `near_airport` must be given, else an error listing those setting names. All given filters must **all** match (so `states` + `region` = airports in both). `within_miles` without `near_airport` is an error. `region` is one of the 4 US Census regions or 9 divisions (`REGIONS`), any case; an unknown one gives an error whose `allowed` = the region names. Distance: great circle from `lat`/`lon`, earth radius 3,958.8 miles; the `near_airport` itself is left out. Rows: code, name, city, state, size (+ `distance_mi`, 1 decimal, with `near_airport`); sorted by code (by distance with `near_airport`); at most 25, and `about` says when more matched. No airport matches → empty list and `about.missing` holds the `airport_not_found` message. Approved 2026-10-31 (Step 9). |
+| P28 | Names in any tool's settings | `run_tool` turns names into codes **after** the pydantic checks, and only in settings typed `AirportList` or `AirportCode` (one airport), never in `states` ("LA" there is Louisiana). Each value goes through `resolve_airport` with all P25 rules: exactly 1 match → its code; 0 → error with the `airport_not_found` message and `allowed` = `[]`; several → error whose `allowed` = the matching codes, so the AI picks one. The tool does not run on an error. Approved 2026-10-31 (Step 9). |
 
 ---
 
@@ -411,7 +428,8 @@ The design docs didn't fix these details. They are written here so every session
 - **Interface** (`app/tools/resolver.py`, `app/tools/find.py`):
   - `resolve_airport(con, text) -> list[AirportMatch]` (empty list = not found).
   - `REGIONS: dict[str, list[str]]` and `resolve_region(name) -> list[str]` (states).
-  - Tool `find_airports` registered with the settings in tools.md.
+  - Tool `find_airports` registered with the settings in tools.md (P27). `app/tools/__init__.py` imports each tool file, so `TOOLS` is full wherever `app.tools` is imported.
+  - `app/tools/base.py` gains `AirportCode` (one airport; P28) and the name-to-code step in `run_tool`.
 - **Tests (write first)** in `tests/test_step09_resolver.py`:
   1. `test_code_any_case` (`sfo` → SFO)
   2. `test_city` ("Santa Ana" → SNA)

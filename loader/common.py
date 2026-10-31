@@ -1,8 +1,23 @@
 """Shared loader code: the airport tables and the report every loader returns.
 
-The tables are exactly those of docs/schema.md part 1. Primary keys yes,
-foreign keys no (decisions 7.7). `route_traffic` has no primary key because
-BTS can report the same combination twice.
+What it is:   The code all loaders share: the empty airport tables, the airport code
+              renames, and the report every loader returns.
+Why we need:  The tables are created in one place, exactly as in docs/schema.md part 1,
+              and every loader reports its result the same way.
+Used by:      loader/airports.py, loader/enplanements.py, loader/route_traffic.py,
+              loader/delays.py, loader/build.py; tests/fixtures/tiny_data.py.
+              tests: test_step00 to test_step06, test_step09.
+Uses:         no other project file. Creates the tables airports, enplanements,
+              route_traffic, airport_delays, data_sources.
+Main parts:   CODE_RENAMES - old airport code -> new code (PBI -> DJT).
+              SCHEMA_SQL - the CREATE TABLE statements.
+              create_schema(con) - create the 5 empty airport tables.
+              LoadReport(table, rows, warnings) - what every loader returns.
+Design:       docs/schema.md part 1; docs/decisions.md 7.6 (code renames), 7.7 (no
+              foreign keys).
+
+Primary keys yes, foreign keys no (decisions 7.7). `route_traffic` has no primary
+key because BTS can report the same combination twice.
 """
 
 from dataclasses import dataclass, field

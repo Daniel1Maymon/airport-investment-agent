@@ -1,5 +1,22 @@
 """One command builds the airport database (docs/architecture.md part 1).
 
+What it is:   The command that builds the whole airport database from the raw files.
+Why we need:  One command, run once outside the web app, gives a complete database, or
+              none at all if anything fails.
+Used by:      run by hand: python -m loader.build. The file it makes is opened by
+              app/db.py. tests: test_step05_build.py.
+Uses:         loader/common.py, loader/airports.py, loader/enplanements.py,
+              loader/route_traffic.py, loader/delays.py; writes all 5 tables, including
+              data_sources.
+Main parts:   FAA_YEARS, T100_YEARS, ONTIME_YEAR, ONTIME_MONTHS - what is loaded.
+              SOURCES - table -> (source name, address), for data_sources.
+              write_data_sources(con, reports) - one data_sources row per source.
+              build(raw_dir, out_path, download=True) - build the database; return the 4
+                load reports.
+              main() - the command line.
+Design:       docs/architecture.md part 1 (Loader); docs/schema.md `data_sources`;
+              docs/data-sources.md.
+
     python -m loader.build --raw data/raw --out airports.duckdb
 
 Downloads what is missing, runs the four loaders in order, fills `data_sources`,
