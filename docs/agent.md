@@ -93,19 +93,19 @@ Turns what the user typed into airport codes:
 
 ## Refusal messages
 
-Fixed sentences, one per **cause**, because the user's next step differs:
+Fixed sentences, one per **cause**, because the user's next step differs. The **Key** is the short name the code uses for each cause (`REFUSALS` in `app/refusals.py`); a test checks that the code has exactly these keys.
 
-| Cause | What the user can do |
-|---|---|
-| No data for this question | Ask something else |
-| Airport not found | Check the name |
-| Chat not found (unknown conversation ID) | Start a new chat |
-| Out of scope | Ask about US airports |
-| AI service unavailable or quota reached | Try again later; the data is fine |
-| Too many steps (5 tool rounds used) | Ask a narrower question |
-| Question too long (over 1,000 characters) | Shorten it |
-| Still answering your last question | Wait for the answer |
-| Internal error | Try again later |
+| Key | Cause | What the user can do |
+|---|---|---|
+| `no_data` | No data for this question | Ask something else |
+| `airport_not_found` | Airport not found | Check the name |
+| `chat_not_found` | Chat not found (unknown conversation ID) | Start a new chat |
+| `out_of_scope` | Out of scope | Ask about US airports |
+| `ai_unavailable` | AI service unavailable or quota reached | Try again later; the data is fine |
+| `too_many_steps` | Too many steps (5 tool rounds used) | Ask a narrower question |
+| `question_too_long` | Question too long (over 1,000 characters) | Shorten it |
+| `busy` | Still answering your last question | Wait for the answer |
+| `internal_error` | Internal error | Try again later |
 
 Why separate: if a spend cap or an AI outage is shown as "no data", users believe the data is empty when it is fine.
 
