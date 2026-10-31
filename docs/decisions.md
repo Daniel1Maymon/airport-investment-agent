@@ -207,6 +207,8 @@ Checked on 2025 T-100 data, flights that carried passengers:
 
 **Decision:** Every table stores the **IATA code**. The loader converts FAA codes using the OurAirports `local_code` column (which holds the FAA code), not by assuming the codes are equal. Unmatched rows are listed in the load report, never silently dropped.
 
+**Found while loading (2026-10-31, Step 2):** Palm Beach changed its code from `PBI` to `DJT`. OurAirports and the FAA cy2025 file use `DJT`; the older cy2024 file still says `PBI`, so Palm Beach's **2023** boardings are not loaded (a warning). Scoring uses only 2024→2025 growth, so the ranking is not affected. Decided: no hand-written code exceptions for now (known gap); Step 3 checks which code BTS uses for this airport. Kake, AK (`AFE`) is also unmatched: no scheduled service, outside our scope.
+
 ### 7.7 No foreign keys
 **Decision:** Primary keys yes, foreign-key constraints no. The loader runs explicit checks instead ("every airport code in `enplanements` and `airport_delays` exists in `airports`") and reports failures.
 

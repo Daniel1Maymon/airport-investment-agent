@@ -269,7 +269,7 @@ The design docs didn't fix these details. They are written here so every session
   7. `test_duplicate_rows_kept`
   8. `test_passenger_total_matches_file`
   9. `test_missing_column_fails_loudly`
-- **Real-data check:** about 570K rows per year; passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo.
+- **Real-data check:** about 570K rows per year; passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo. Check which code Palm Beach has in each year (`PBI` or `DJT`; decisions 7.6) and report it.
 - **Design:** [data-sources.md](data-sources.md) C, [schema.md](schema.md) `route_traffic`.
 
 ### Step 4: Delays
