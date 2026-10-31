@@ -110,7 +110,7 @@ CONGESTION = ["departures_per_runway", "nas_delay_per_flight", "taxi_out_min", "
 NEW_ENGLAND = {"CT", "ME", "MA", "NH", "RI", "VT"}
 
 BASE_KEYS = {"iata", "name", "city", "state", "size"}
-ROW_KEYS = BASE_KEYS | {"national_rank", "value", "grade"}
+ROW_KEYS = BASE_KEYS | {"national_rank", "region_rank", "value", "grade"}
 SCORE_ROW_KEYS = ROW_KEYS | {"demand_score", "strain_score", "grades", "flags", "missing"}
 PROFILE_KEYS = BASE_KEYS | {
     "measures",

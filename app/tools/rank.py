@@ -13,7 +13,8 @@ Used by:      app/tools/__init__.py (the import registers the tool); app/tools/p
               (NOTE_DELAYS); app/tools/unmet.py (grade_every_measure, about_assumptions,
               DEFAULT_MIN_ENPLANEMENTS, NOTE_DELAYS, NOTE_TAXI). The AI calls the tool
               through run_tool.
-              tests: test_step10_rank_profile.py, test_step11_trend_routes_delays.py.
+              tests: test_step10_rank_profile.py, test_step11_trend_routes_delays.py,
+              test_step15_question_script.py.
 Uses:         app/measures.py (compute_measures, YEAR), app/scoring.py (score_airports,
               percentile_grades, DEFAULT_WEIGHTS, WEIGHT_MEASURES), app/tools/base.py,
               app/tools/find.py (Region, Size), app/tools/resolver.py (load_airports,
@@ -24,10 +25,12 @@ Main parts:   DEFAULT_MIN_ENPLANEMENTS, SCORE_SORTS - fixed defaults and the thr
               RankSettings - the tool's settings; weights are checked here (P30).
               grade_every_measure(measures, min_enplanements) - national grade of every
                 measure (P29): measure -> {code: grade}.
-              size_filter_text, about_period, about_assumptions - the `about` texts (P35).
+              NOTE_GRADES, NOTE_RANKS - the grade-direction and rank lines (P69, P71).
+              size_filter_text, about_period, about_assumptions - the `about` texts (P35);
+                about_assumptions also adds NOTE_GRADES after the national-grades note.
               rank_airports(con, settings) - the tool; a ToolResult with up to 25 airports.
 Design:       docs/tools.md "2. rank_airports"; docs/scoring.md;
-              docs/implementation-plan.md P29-P33, P35.
+              docs/implementation-plan.md P29-P33, P35, P69-P71.
 """
 
 from typing import Annotated, Literal
@@ -63,6 +66,16 @@ NOTE_TAXI = (
 NOTE_AIRLINE = (
     "top_airline_share uses the airline that operates the flight. A regional airline flying for a major "
     "(e.g. SkyWest for United) counts separately, so dependence on a major can be understated."
+)
+# Says which way a grade points, so the AI doesn't read "high grade" as "good" (P69).
+NOTE_GRADES = (
+    "A grade of 80 means a higher value than 80% of US airports; for strain measures, a higher grade "
+    "means more strain."
+)
+# Says which rank is which, so the AI never counts ranks itself (P70, P71).
+NOTE_RANKS = (
+    "national_rank = place among all US airports in the size filter; region_rank = place among the "
+    "airports that match these filters. Rank 1 = the highest value."
 )
 DELAY_NAMES = ("nas_delay_per_flight", "taxi_out_min", "late_share", "cancel_rate")
 
@@ -126,7 +139,8 @@ def about_assumptions(min_enplanements, shown):
     """The fixed notes (P35) for the measures `shown`."""
     notes = [
         f"Grades are national: compared with all US airports with {min_enplanements:,}+ enplanements "
-        f"in {YEAR}, before any region filter."
+        f"in {YEAR}, before any region filter.",
+        NOTE_GRADES,
     ]
     if "long_haul_share" in shown:
         notes.append(NOTE_LONG_HAUL)
@@ -149,7 +163,9 @@ def about_assumptions(min_enplanements, shown):
     "`min_enplanements` boardings in 2025 (default 100,000) are ranked. `order` is 'highest_first' "
     "(default) or 'lowest_first'. `weights` changes the score's weights (only with sort_by 'score'; "
     "D1..S4, total 100). Returns at most `top_n` airports (default 10, at most 25), each with the value, "
-    "its national grade and national rank; for 'score' also the six measure grades and the flags.",
+    "its national grade, national_rank (place among all US airports) and region_rank (place among the "
+    "airports that match the filters; use it for 'how does X rank in California?'); for 'score' also the "
+    "six measure grades and the flags.",
     RankSettings,
 )
 def rank_airports(con, settings):
@@ -202,12 +218,17 @@ def rank_airports(con, settings):
     codes.sort(key=lambda c: (values[c] is None, sign * (values[c] or 0), c))
 
     matched = len(codes)
+    # Rank inside the filtered airports, before the top_n cut (P71): counted from the highest
+    # value like national_rank (ties A->Z, a None score last), whatever `order` is.
+    in_order = sorted(codes, key=lambda c: (values[c] is None, -(values[c] or 0), c))
+    region = {code: rank for rank, code in enumerate(in_order, start=1)}
     rows = []
     for code in codes[: settings.top_n]:
         match = info[code]
         row = {
             **match._asdict(),
             "national_rank": national[code],
+            "region_rank": region[code],
             "value": values[code],
             "grade": grades.get(code),
         }
@@ -229,6 +250,7 @@ def rank_airports(con, settings):
 
     shown = list(WEIGHT_MEASURES.values()) if sort_by in SCORE_SORTS else [sort_by]
     assumptions = about_assumptions(min_enpl, shown)
+    assumptions.append(NOTE_RANKS)
     if sort_by == "score":
         in_force = {k: (settings.weights or DEFAULT_WEIGHTS).get(k, 0) for k in WEIGHT_KEYS}
         assumptions.append("Weights: " + ", ".join(f"{k} {w:g}" for k, w in in_force.items()) + ".")
