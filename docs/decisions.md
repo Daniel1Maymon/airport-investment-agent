@@ -207,7 +207,11 @@ Checked on 2025 T-100 data, flights that carried passengers:
 
 **Decision:** Every table stores the **IATA code**. The loader converts FAA codes using the OurAirports `local_code` column (which holds the FAA code), not by assuming the codes are equal. Unmatched rows are listed in the load report, never silently dropped.
 
-**Found while loading (2026-10-31, Step 2):** Palm Beach changed its code from `PBI` to `DJT`. OurAirports and the FAA cy2025 file use `DJT`; the older cy2024 file still says `PBI`, so Palm Beach's **2023** boardings are not loaded (a warning). Scoring uses only 2024→2025 growth, so the ranking is not affected. Decided: no hand-written code exceptions for now (known gap); Step 3 checks which code BTS uses for this airport. Kake, AK (`AFE`) is also unmatched: no scheduled service, outside our scope.
+**Found while loading (2026-10-31, Step 2):** Palm Beach changed its code from `PBI` to `DJT`. OurAirports and the FAA cy2025 file use `DJT`; the older cy2024 file still says `PBI`, so Palm Beach's **2023** boardings are not loaded (a warning). Kake, AK (`AFE`) is also unmatched: no scheduled service, outside our scope.
+
+**Found in Step 3 (2026-10-31):** BTS T-100 says `PBI` in **all three years** (2019, 2024, 2025; 4.27M passengers in 2025). Without a fix, Palm Beach's route data would not link to its airport row, and it would lose 3 of the 6 score measures (D1, S1, S4: 55% of the weight). A check of every airport in our list against the 2025 T-100 file found no other US mismatch (the rest are foreign airports, territories, or tiny strips with no passengers).
+
+**Decision (2026-10-31, replaces the earlier "known gap"):** one written code rename, `CODE_RENAMES = {"PBI": "DJT"}` in `loader/common.py`, old code → current code. Every loader applies it to every airport code it reads (T-100 `origin`/`dest`, the FAA `Locid` before translation, and the On-Time file in Step 4), so all tables say `DJT`. **Why:** a single exception backed by real evidence keeps a large airport in the ranking; it lives in one place with its reason, and is tested. New renames are added only with evidence like this.
 
 ### 7.7 No foreign keys
 **Decision:** Primary keys yes, foreign-key constraints no. The loader runs explicit checks instead ("every airport code in `enplanements` and `airport_delays` exists in `airports`") and reports failures.

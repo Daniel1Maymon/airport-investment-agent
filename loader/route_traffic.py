@@ -24,7 +24,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from loader.common import LoadReport
+from loader.common import CODE_RENAMES, LoadReport
 
 T100_URL = "https://www.transtats.bts.gov/DL_SelectFields.aspx?gnoyr_VQ=FMG&QO_fu146_anzr=Nv4%20Pn44vr45"
 
@@ -43,6 +43,11 @@ REQUIRED_COLUMNS = [
     "AIRCRAFT_TYPE", "DEPARTURES_PERFORMED", "SEATS", "PASSENGERS", "FREIGHT", "DISTANCE",
 ]
 
+# Old -> current airport codes (decisions 7.6), as a CASE whose codes are SQL
+# parameters. The {col} placeholder is filled only with ORIGIN or DEST below.
+_RENAME_SQL = "CASE {col} " + "WHEN ? THEN ? " * len(CODE_RENAMES) + "ELSE {col} END"
+_RENAME_PARAMS = [code for pair in CODE_RENAMES.items() for code in pair]
+
 # Every value is read as text; numbers are written like `10.00`, so the count
 # columns go through DOUBLE before BIGINT. DEPARTURES_PERFORMED, not scheduled (P6).
 INSERT_SQL = """
@@ -50,8 +55,8 @@ INSERT INTO route_traffic
 SELECT
     CAST(YEAR AS INTEGER),
     CAST(MONTH AS INTEGER),
-    ORIGIN,
-    DEST,
+    {origin},
+    {dest},
     DEST_COUNTRY,
     UNIQUE_CARRIER,
     CARRIER_NAME,
@@ -63,7 +68,8 @@ SELECT
     CAST(DISTANCE AS DOUBLE),
     CAST(PASSENGERS AS DOUBLE) > 0
 FROM read_csv(?, header = true, all_varchar = true)
-"""
+""".format(origin=_RENAME_SQL.format(col="ORIGIN"), dest=_RENAME_SQL.format(col="DEST"))
+INSERT_PARAMS = _RENAME_PARAMS + _RENAME_PARAMS  # origin CASE, then dest CASE
 
 _INPUT_TAG = re.compile(r"<input\b[^>]*>", re.IGNORECASE)
 _NAME_ATTR = re.compile(r'\bname\s*=\s*"([^"]*)"', re.IGNORECASE)
@@ -144,7 +150,7 @@ def load_route_traffic(zip_paths, con) -> LoadReport:
                 csv_path = Path(tmp) / f"{i}.csv"
                 with zipfile.ZipFile(p) as z, z.open(DATA_MEMBER) as src, open(csv_path, "wb") as out:
                     shutil.copyfileobj(src, out)
-                con.execute(INSERT_SQL, [str(csv_path)])
+                con.execute(INSERT_SQL, INSERT_PARAMS + [str(csv_path)])
                 csv_path.unlink()
             con.execute("COMMIT")
         except Exception:

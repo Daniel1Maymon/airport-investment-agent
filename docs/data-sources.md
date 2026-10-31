@@ -30,7 +30,9 @@ Downloaded files are untrusted: keep them in their own directory and run any Pyt
   1. GET the page with a cookie jar and read the hidden fields `__VIEWSTATE`, `__EVENTVALIDATION`, etc.
   2. POST back to the same URL with those hidden fields plus `cboGeography=All`, `cboYear=<year>`, `cboPeriod=All`, `chkDownloadZip=on`, `btnDownload=Download`, and `<FIELD>=on` for each column wanted.
 - Columns requested: `DEPARTURES_SCHEDULED, DEPARTURES_PERFORMED, SEATS, PASSENGERS, FREIGHT, DISTANCE, UNIQUE_CARRIER, CARRIER_NAME, ORIGIN, ORIGIN_STATE_ABR, ORIGIN_COUNTRY, DEST, DEST_STATE_ABR, DEST_COUNTRY, DEST_COUNTRY_NAME, AIRCRAFT_TYPE, YEAR, MONTH, CLASS`.
-- Result: a zip with `T_T100_SEGMENT_ALL_CARRIER.csv`, ~8 MB zipped / ~61 MB CSV, ~570K rows per year, ~50 s per year. Years 1990–2026 available. We load 2019, 2024, 2025.
+- Result: a zip with two files, `Documentation.csv` (field list) and `T_T100_SEGMENT_ALL_CARRIER.csv`, ~7–8 MB zipped / ~61 MB CSV, ~50 s per year. Rows (checked 2026-10-31): 2019 487,923; 2024 549,799; 2025 571,205. Counts are written with two decimals (`4.00`); carrier names with a comma are in quotes.
+- Palm Beach is `PBI` in every year; the loader renames it to `DJT` (decisions 7.6).
+- Years 1990–2026 available. We load 2019, 2024, 2025.
 - Risk: if BTS changes the page, the script breaks. The loader should fail loudly.
 - Do **not** use the "Domestic Segment, US carriers only" table: it misses international and foreign-carrier flights (e.g. most Anchorage cargo).
 

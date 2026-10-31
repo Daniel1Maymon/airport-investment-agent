@@ -31,7 +31,7 @@ All airport codes are IATA codes (see 7.6). Primary keys yes, foreign keys no (s
 | `enplanements` | 25000000 | Passengers who boarded |
 | `hub_type` | L / M / S / N | FAA size group; empty (NULL) when the FAA gives none (its file says `None`) |
 
-**`route_traffic`**: one row per airline × route × month × aircraft type (2019, 2024, 2025; ~1.7M rows). Source: BTS T-100 Segment, All Carriers, stored almost as downloaded so unexpected follow-up questions can still be answered.
+**`route_traffic`**: one row per airline × route × month × aircraft type (2019, 2024, 2025; ~1.6M rows: 488K / 550K / 571K). Source: BTS T-100 Segment, All Carriers, stored almost as downloaded so unexpected follow-up questions can still be answered.
 
 | Column | Meaning |
 |---|---|

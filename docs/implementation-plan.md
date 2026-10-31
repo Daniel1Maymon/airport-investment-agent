@@ -269,13 +269,13 @@ The design docs didn't fix these details. They are written here so every session
   7. `test_duplicate_rows_kept`
   8. `test_passenger_total_matches_file`
   9. `test_missing_column_fails_loudly`
-- **Real-data check:** about 570K rows per year; passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo. Check which code Palm Beach has in each year (`PBI` or `DJT`; decisions 7.6) and report it.
+- **Real-data check:** about 490K–570K rows per year (2019 488K, 2024 550K, 2025 571K); passengers per year equal the downloaded file's sum; Anchorage: about 54% of departures are cargo. Check which code Palm Beach has in each year (`PBI` or `DJT`; decisions 7.6) and report it.
 - **Design:** [data-sources.md](data-sources.md) C, [schema.md](schema.md) `route_traffic`.
 
 ### Step 4: Delays
 - **Part:** Loader
 - **Needs:** 1 (the `airports` table, to keep only our airports).
-- **Builds:** downloads the On-Time files for 2025, unzips each one, and reduces single flights to totals per airport × month × direction (`airport_delays`). One month is downloaded and checked first, before the 40-minute full download.
+- **Builds:** downloads the On-Time files for 2025, unzips each one, and reduces single flights to totals per airport × month × direction (`airport_delays`). One month is downloaded and checked first, before the 40-minute full download. Airport codes go through `CODE_RENAMES` from `loader/common.py` (`PBI` → `DJT`, decisions 7.6) before the "only our airports" filter, so Palm Beach is kept.
 - **Interface** (`loader/delays.py`):
   - `download_ontime(year, month, dest_dir) -> Path` (network).
   - `load_airport_delays(zip_paths, con) -> LoadReport`.
