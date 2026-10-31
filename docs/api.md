@@ -11,7 +11,7 @@ Request:
   "message": "Which New England airports are strong candidates for terminal expansion?" }
 ```
 
-`conversation_id` is left out on the first message; the backend starts a new chat and returns its ID. The page keeps only this ID.
+`conversation_id` is left out on the first message; the backend starts a new chat and returns its ID. The page keeps only this ID, plus a list of its own past chat IDs with their first questions for the "Your chats" panel (P109). Opening a past chat uses address 2.
 
 `language` is optional: `"en"` (the default) or `"he"`. With `"he"` the AI writes the answer in Hebrew (P106). Any other value is a bad request (400).
 

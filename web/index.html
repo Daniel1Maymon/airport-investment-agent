@@ -5,12 +5,13 @@ Why:        The exam asks for a chat interface. This page is the only thing the 
             a message box, the answers, the tables and the "How I got this" list.
 Used by:    The browser. Served as plain files (locally on port 5500, online by Vercel).
 Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
-Main parts: header (name, language, "How the score works", New chat, chat ID); the welcome
+Main parts: the "Your chats" side panel (P109-P112); header (menu button on narrow screens, name, language, "How the score works", New chat, chat ID); the welcome
             headline; the message list; the message box (microphone only when the browser has
             speech recognition, round Send button); the starter questions; the
             "How the score works" panel.
 Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and method panel
             (static text, checked against docs/scoring.md). P106: Hebrew, right to left.
+            P108: Deloitte colours. P109-P112: past chats in a side panel.
             P107: a calm chat layout (centred start screen, grey question bubbles, answers as
             plain text, one rounded message box). Readable at phone width (375 px): 16 px side
             margins, text wraps, wide tables scroll sideways inside their own box (P97).
@@ -193,6 +194,46 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
     .lang-btn > span { display: inline-flex; align-items: center; gap: 7px; }
     .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 31, 53, 0.15); flex: none; }
 
+    /* ---------- Chat history side panel (P109-P112) ---------- */
+    /* Wide screens: always open on the start side (left in English, right in Hebrew).
+       Phone and narrow screens: hidden; the menu button opens it over the page. */
+    #history {
+      position: fixed; top: 0; bottom: 0; inset-inline-start: 0; z-index: 5; width: 260px;
+      background: #f7f7f7; border-inline-end: 1px solid var(--line);
+      display: flex; flex-direction: column; padding: 12px 10px;
+    }
+    .history-top { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 10px; }
+    .history-top h2 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+    #history-close { display: none; font-size: 20px; line-height: 1; padding: 4px 10px; }
+    #history-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+    #history-list li { display: flex; align-items: center; border-radius: 10px; }
+    #history-list li:hover, #history-list li.current { background: #e9eaec; }
+    #history-list li.current { box-shadow: inset 3px 0 0 var(--green); }
+    html[dir="rtl"] #history-list li.current { box-shadow: inset -3px 0 0 var(--green); }
+    .chat-item {
+      flex: 1; min-width: 0; text-align: start; border-radius: 10px; padding: 8px 10px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400;
+    }
+    .chat-item:hover:not(:disabled), .chat-remove:hover:not(:disabled) { background: none; }
+    .chat-remove { flex: none; padding: 4px 9px; color: var(--faint); opacity: 0; font-size: 16px; line-height: 1; }
+    #history-list li:hover .chat-remove, .chat-remove:focus-visible { opacity: 1; }
+    .chat-remove:hover:not(:disabled) { color: var(--ink); }
+    .history-empty { font-size: 13px; color: var(--faint); padding: 4px 8px; margin: 0; }
+    #history-shade { display: none; position: fixed; inset: 0; z-index: 4; background: rgba(0, 0, 0, 0.3); }
+    #menu { display: none; font-size: 18px; line-height: 1; padding: 6px 10px; }
+    @media (min-width: 900px) {
+      .page { margin-inline-start: 260px; }
+    }
+    @media (max-width: 899px) {
+      #history { transform: translateX(-100%); transition: transform 0.2s ease; box-shadow: 0 0 30px rgba(0, 0, 0, 0.15); }
+      html[dir="rtl"] #history { transform: translateX(100%); }
+      body.history-open #history { transform: none; }
+      body.history-open #history-shade { display: block; }
+      #history-close, #menu { display: inline-block; }
+      .chat-remove { opacity: 1; } /* no hover on a phone */
+    }
+    @media (prefers-reduced-motion: reduce) { #history { transition: none; } }
+
     /* ---------- Phone width ---------- */
     @media (max-width: 600px) {
       .examples { grid-template-columns: 1fr; }
@@ -204,9 +245,19 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
   </style>
 </head>
 <body class="empty">
+  <aside id="history" aria-label="Your chats">
+    <div class="history-top">
+      <h2><span data-lang="en">Your chats</span><span data-lang="he">השיחות שלך</span></h2>
+      <button id="history-close" type="button" aria-label="Close">×</button>
+    </div>
+    <ul id="history-list"></ul>
+    <p id="history-empty" class="history-empty"><span data-lang="en">Your chats will show here.</span><span data-lang="he">השיחות שלך יופיעו כאן.</span></p>
+  </aside>
+  <div id="history-shade"></div>
   <div class="page">
     <header>
       <div class="column">
+        <button id="menu" type="button" aria-label="Your chats" aria-controls="history">☰</button>
         <div class="brand">
           <h1><button id="home" type="button" class="home-link" title="Back to the start"><span data-lang="en">US Airport Investment Agent</span><span data-lang="he">סוכן השקעות בשדות תעופה בארה״ב</span></button></h1>
         </div>

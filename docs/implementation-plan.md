@@ -280,6 +280,10 @@ The design docs didn't fix these details. They are written here so every session
 | P106 | Hebrew version, right to left | A flag button switches the page between English and Hebrew; the Hebrew page is mirrored (right to left) and remembers the choice. The page sends `"language": "he"` with each question, and the backend adds one system line asking for the whole answer in Hebrew, also for an English question; level words and measure names are in Hebrew too. The page shows refusal messages and the "How I got this" labels in Hebrew by their fixed key. Data tables, airport names and codes stay in English, left to right. A `language` other than "en" or "he" is a bad request (400). | The firm's readers may prefer Hebrew; one page language means no mixed-language answers. The out-of-scope sentence stays English inside the backend so the loop's word-for-word check still works. |
 | P107 | Calm chat layout; "US" in the name | The page is named "US Airport Investment Agent" (Hebrew: סוכן השקעות בשדות תעופה בארה״ב), and the input says "Ask about any US airport". Layout follows common chat sites: an empty chat shows one centred question, the input box and four example questions; questions appear as grey bubbles, answers as plain text without a card; the send button is a round arrow; the input box grows with the text. The score split (Demand 40%, Strain 60%) shows as a thin bar under the examples. Works at phone width with no sideways scroll. | The tool covers US airports only, so the name must say so. A layout readers already know from chat sites needs no learning, and a calm page puts the answer and its numbers first. |
 | P108 | Deloitte colours; a clear way back to the start | The page uses Deloitte colours: black, white, Deloitte green (#86BC25) for Demand and the logo mark, a darker green (#26890D) for links and focus, and cool greys. Colours only, no Deloitte logo or name, so the page does not look like an official Deloitte product. The app name in the header and a "+ New chat" button both clear the chat and show the start page. | The project is for a Deloitte exam, so its colours fit the reader. Readers expect the name at the top to lead back to the start, as on most sites. |
+| P109 | The browser keeps the list of your chats | After each answer the page saves the chat ID, its first question (as a title, cut to 80 characters) and the time in the browser (localStorage, newest first, at most 50). A chat the server no longer has leaves the list. No backend change: opening a chat uses `GET /chat/{id}`. | There are no user accounts, so the server cannot tell which chats are yours; a server list of all chats would show every visitor everyone's chats. |
+| P110 | "Your chats" side panel | A panel on the start side (left in English, right in Hebrew) lists past chats, newest first. Clicking one loads it; the open chat is highlighted with a green bar. New chat clears the page and the list stays. | Works like common chat sites, so readers already know how to use it. |
+| P111 | On narrow screens the panel hides behind a menu button | Below 900 px wide the panel is hidden; a ☰ button in the header opens it over the page. A tap outside, the × button or Escape closes it. | A phone is too narrow for the panel and the chat side by side. |
+| P112 | Remove a chat from the list | A small × next to each chat removes it from this browser's list; the server keeps the chat. Removing the open chat shows the start page. | Keeps the list tidy without deleting data. |
 
 ---
 
@@ -690,7 +694,7 @@ The design docs didn't fix these details. They are written here so every session
   6. the page works at phone width;
   7. voice input fills the message box (in a browser that supports it).
 - **Real-data check:** the four exam questions through the local backend.
-- **Details:** P92–P98, P103–P108.
+- **Details:** P92–P98, P103–P112.
 - **Design:** [api.md](api.md), [architecture.md](architecture.md) part 6.
 
 ### Step 18: Put it online

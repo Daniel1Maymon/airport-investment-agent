@@ -5,10 +5,11 @@ Why:        Sends the user's question to the backend, shows "Working…" while w
             after a page reload.
 Used by:    index.html.
 Uses:       The backend's two chat addresses (docs/api.md): POST /chat and GET /chat/{id}.
-            The browser's localStorage (keeps only the chat ID) and, when present, the
+            The browser's localStorage (the open chat's ID, the list of past chats: P109) and, when present, the
             browser's speech recognition (voice input, exam bonus). No library.
 Main parts: storage helpers, number formats, safe answer text, tables, one turn,
-            sending a question, reloading a chat, New chat, voice.
+            past chats side panel (P109-P112), sending a question, reloading a chat,
+            New chat, voice.
 Design:     Implementation plan P92-P98.
             P94: the backend address is the one line right below this comment.
             P95: everything from the server and the user's own text goes in as plain text
@@ -40,6 +41,7 @@ const TEXT = {
     placeholder: "Ask about any US airport",
     mic: "Mic", stop: "Stop", speak: "Speak your question", question: "Your question",
     otherLang: "עברית", speech: "en-US",
+    remove: "Remove from list", chats: "Your chats", close: "Close",
   },
   he: {
     noServer: "אין חיבור לשרת. נסו שוב.",
@@ -53,6 +55,7 @@ const TEXT = {
     placeholder: "שאלו על כל שדה תעופה בארה״ב",
     mic: "הקלטה", stop: "עצירה", speak: "הקלטת השאלה", question: "השאלה שלך",
     otherLang: "English", speech: "he-IL",
+    remove: "הסרה מהרשימה", chats: "השיחות שלך", close: "סגירה",
   },
 };
 let lang = "en";
@@ -154,6 +157,109 @@ function clearChatId() {
     // nothing to clear
   }
   showChatId();
+}
+
+// ---------- Past chats, kept in this browser only (P109-P112) ----------
+// There are no user accounts, so the server cannot know which chats are yours. The browser
+// keeps a short list: [{ id, title (the first question), at (time in ms) }], newest first.
+// The chats themselves stay on the server and load through GET /chat/{id}.
+// Removing a chat only takes it off this list; the server keeps it.
+
+const HISTORY_KEY = "chats";
+const HISTORY_MAX = 50;
+const TITLE_MAX = 80;
+
+function loadHistory() {
+  try {
+    const list = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    if (!Array.isArray(list)) return [];
+    return list.filter(function (c) {
+      return c && typeof c.id === "string" && c.id && typeof c.title === "string";
+    });
+  } catch (e) {
+    return []; // storage blocked or the saved text is broken: start with an empty list
+  }
+}
+
+function saveHistory(list) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, HISTORY_MAX)));
+  } catch (e) {
+    // storage blocked: the list lasts until the page is reloaded
+  }
+}
+
+// Puts a chat at the top of the list. A chat already in the list keeps its first title.
+function rememberChat(id, title) {
+  const list = loadHistory();
+  const old = list.find(function (c) { return c.id === id; });
+  const rest = list.filter(function (c) { return c.id !== id; });
+  const name = old ? old.title : String(title || "").trim().slice(0, TITLE_MAX);
+  rest.unshift({ id: id, title: name, at: Date.now() });
+  saveHistory(rest);
+  renderHistory();
+}
+
+// Adds a chat at the end only when it is missing (a chat from before P109 that the page reloads).
+function rememberIfMissing(id, title) {
+  const list = loadHistory();
+  if (list.some(function (c) { return c.id === id; })) return;
+  list.push({ id: id, title: String(title || "").trim().slice(0, TITLE_MAX), at: Date.now() });
+  saveHistory(list);
+  renderHistory();
+}
+
+function forgetChat(id) {
+  saveHistory(loadHistory().filter(function (c) { return c.id !== id; }));
+  renderHistory();
+}
+
+const historyListEl = document.getElementById("history-list");
+const historyEmptyEl = document.getElementById("history-empty");
+
+function renderHistory() {
+  const list = loadHistory();
+  const current = getChatId();
+  historyListEl.replaceChildren();
+  historyEmptyEl.hidden = list.length > 0;
+  list.forEach(function (c) {
+    const li = el("li", c.id === current ? "current" : "");
+    const open = el("button", "chat-item", c.title || c.id);
+    open.type = "button";
+    open.title = c.title || c.id;
+    open.dir = "auto"; // an English title on the Hebrew page still reads (and cuts off) left to right
+    if (c.id === current) open.setAttribute("aria-current", "true");
+    open.addEventListener("click", function () { openChat(c.id); });
+    const remove = el("button", "chat-remove", "×");
+    remove.type = "button";
+    remove.title = T("remove");
+    remove.setAttribute("aria-label", T("remove") + ": " + (c.title || c.id));
+    remove.addEventListener("click", function () {
+      if (busy) return;
+      forgetChat(c.id);
+      if (c.id === getChatId()) startNewChat(); // the open chat was removed: show the start page
+    });
+    li.appendChild(open);
+    li.appendChild(remove);
+    historyListEl.appendChild(li);
+  });
+}
+
+// P111: on narrow screens the panel opens over the page from the menu button.
+function setHistoryOpen(on) {
+  document.body.classList.toggle("history-open", on);
+}
+
+function openChat(id) {
+  if (busy) return;
+  setHistoryOpen(false);
+  if (id === getChatId() && messagesEl.children.length) return; // already open
+  setChatId(id);
+  messagesEl.replaceChildren();
+  updateWelcome();
+  renderHistory();
+  window.scrollTo(0, 0);
+  reloadChat();
 }
 
 function showChatId() {
@@ -488,8 +594,14 @@ async function send() {
   if (!reply) {
     addNoServer(turn);
   } else {
-    if (reply.refusal && reply.refusal.cause === "chat_not_found") clearChatId();
-    else if (typeof reply.conversation_id === "string" && reply.conversation_id) setChatId(reply.conversation_id);
+    if (reply.refusal && reply.refusal.cause === "chat_not_found") {
+      if (id) forgetChat(id);
+      clearChatId();
+      renderHistory();
+    } else if (typeof reply.conversation_id === "string" && reply.conversation_id) {
+      setChatId(reply.conversation_id);
+      rememberChat(reply.conversation_id, text); // P109: the first question becomes the title
+    }
     addReply(turn, reply);
   }
   setBusy(false);
@@ -507,11 +619,17 @@ async function reloadChat() {
     messagesEl.appendChild(el("div", "msg refusal", T("noServer")));
     updateWelcome();
   } else if (reply.refusal && reply.refusal.cause === "chat_not_found") {
+    forgetChat(id); // the server no longer has it, so it leaves the list too
     clearChatId();
+    renderHistory();
+    updateWelcome();
   } else {
-    (reply.turns || []).forEach(function (t) {
+    const turns = reply.turns || [];
+    turns.forEach(function (t) {
       addReply(addQuestion(t.question), t);
     });
+    if (turns.length) rememberIfMissing(id, turns[0].question);
+    updateWelcome();
   }
   setBusy(false);
 }
@@ -540,10 +658,18 @@ function startNewChat() {
   clearChatId();
   messagesEl.replaceChildren();
   updateWelcome();
+  renderHistory();
+  setHistoryOpen(false);
   window.scrollTo(0, 0);
   inputEl.focus();
 }
 newChatBtn.addEventListener("click", startNewChat);
+document.getElementById("menu").addEventListener("click", function () { setHistoryOpen(true); });
+document.getElementById("history-close").addEventListener("click", function () { setHistoryOpen(false); });
+document.getElementById("history-shade").addEventListener("click", function () { setHistoryOpen(false); });
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") setHistoryOpen(false);
+});
 document.getElementById("home").addEventListener("click", startNewChat);
 
 // ---------- Example questions and the "How the score works" panel (P105) ----------
@@ -626,8 +752,12 @@ function applyLang(next) {
   inputEl.setAttribute("aria-label", T("question"));
   micBtn.title = T("speak");
   micBtn.setAttribute("aria-label", T("speak"));
+  document.getElementById("history").setAttribute("aria-label", T("chats"));
+  document.getElementById("menu").setAttribute("aria-label", T("chats"));
+  document.getElementById("history-close").setAttribute("aria-label", T("close"));
   if (micBtn.textContent !== TEXT.en.stop && micBtn.textContent !== TEXT.he.stop) micBtn.textContent = T("mic");
   showChatId();
+  renderHistory(); // the remove buttons' labels change language too
 }
 
 langBtn.addEventListener("click", function () {
@@ -646,4 +776,5 @@ try {
   savedLang = null;
 }
 applyLang(savedLang === "he" ? "he" : "en");
+renderHistory();
 reloadChat();

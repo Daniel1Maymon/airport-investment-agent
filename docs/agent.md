@@ -48,7 +48,7 @@ The AI never invents a number. If no tool returned it, the answer doesn't contai
 
 ## Conversation memory
 
-- The chat is stored **on the server**, in a SQLite file (`chat.sqlite`) kept on a Railway disk that survives deploys. The browser keeps only the **conversation ID**, a long random code.
+- The chat is stored **on the server**, in a SQLite file (`chat.sqlite`) kept on a Railway disk that survives deploys. The browser keeps only the **conversation ID**, a long random code. For the "Your chats" panel it also keeps a short list of its own past chat IDs, each with its first question as a title (P109); the answers, tables and steps stay on the server.
 - **Every step is stored and replayed**: the questions, the tool calls, the tool results and the answers. So a follow-up such as "what if growth matters more?" sees the earlier numbers and settings and doesn't have to start over.
 - **History too long:** the oldest whole turns are left out of what is sent to the AI (a tool request and its result are always kept or dropped together). Nothing is deleted from the file.
 - **Old chats are not deleted** in version 1.
