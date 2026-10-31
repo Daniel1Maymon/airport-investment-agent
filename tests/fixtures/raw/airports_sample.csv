@@ -1,0 +1,13 @@
+id,ident,type,name,latitude_deg,longitude_deg,elevation_ft,continent,iso_country,iso_region,municipality,scheduled_service,icao_code,iata_code,gps_code,local_code,home_link,wikipedia_link,keywords
+1,KSFO,large_airport,San Francisco International Airport,37.619,-122.375,13,NA,US,US-CA,San Francisco,yes,KSFO,SFO,KSFO,SFO,,,
+2,KLAX,large_airport,Los Angeles International Airport,33.942,-118.408,125,NA,US,US-CA,Los Angeles,yes,KLAX,LAX,KLAX,LAX,,,
+3,KSNA,medium_airport,"John Wayne Airport, Orange County",33.676,-117.868,56,NA,US,US-CA,Santa Ana,yes,KSNA,SNA,KSNA,SNA,,,
+4,KBOS,large_airport,Logan International Airport,42.364,-71.005,20,NA,US,US-MA,Boston,yes,KBOS,BOS,KBOS,BOS,,,"Logan, Boston"
+5,KIWA,medium_airport,Phoenix-Mesa Gateway Airport,33.308,-111.655,1382,NA,US,US-AZ,Mesa,yes,KIWA,AZA,KIWA,IWA,,,
+6,TJSJ,large_airport,Luis Munoz Marin International Airport,18.439,-66.002,9,NA,PR,PR-U-A,San Juan,yes,TJSJ,SJU,TJSJ,SJU,,,
+7,KHWD,small_airport,Hayward Executive Airport,37.659,-122.122,52,NA,US,US-CA,Hayward,no,KHWD,HWD,KHWD,HWD,,,
+8,KPAO,small_airport,Palo Alto Airport,37.461,-122.115,7,NA,US,US-CA,Palo Alto,yes,KPAO,,KPAO,PAO,,,
+9,5KE,seaplane_base,Ketchikan Harbor Seaplane Base,55.349,-131.677,0,NA,US,US-AK,Ketchikan,yes,,WFB,5KE,5KE,,,
+10,KBHB,small_airport,Hancock County-Bar Harbor Airport,44.450,-68.362,83,NA,US,US-ME,Bar Harbor,yes,KBHB,BHB,KBHB,BHB,,,
+11,KMHT,medium_airport,"Manchester-Boston Regional Airport, also known by a very long made-up name that goes on past the one hundred character limit",42.933,-71.436,266,NA,US,US-NH,Manchester,yes,KMHT,MHT,KMHT,MHT,,,
+12,PANC,large_airport,Ted Stevens Anchorage International Airport,61.174,-149.998,152,NA,US,US-AK,Anchorage,yes,PANC,ANC,PANC,ANC,,,
