@@ -84,7 +84,7 @@ Ranks airports by any measure.
 | `min_enplanements` | 100,000 | |
 | `top_n` | 10 | at most 25 |
 
-Output: one row per airport with the sorted measure, its grade, and (for `score`) the six measure grades and the flags.
+Output: one row per airport with the sorted measure, its grade, its `national_rank` (place among all US airports in the size filter) and its `region_rank` (place among the airports that match the filters, so the AI never counts ranks itself), and (for `score`) the six measure grades and the flags. Every result that holds grades (this tool, `airport_profile`, `unmet_demand`) also says in `about` what a grade means: a higher grade = a higher value; for strain measures, more strain. Details: implementation-plan.md P71.
 Examples: "Which New England airports are strong candidates for terminal expansion?", "10 most delayed airports", "rank again with growth at 60%".
 
 ### 3. `airport_profile`
