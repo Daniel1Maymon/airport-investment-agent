@@ -7,6 +7,11 @@ BTS can report the same combination twice.
 
 from dataclasses import dataclass, field
 
+# Old airport code -> current code, applied by every loader to every airport
+# code it reads. Palm Beach changed PBI to DJT; BTS T-100 and the older FAA
+# file still say PBI (decisions 7.6). Add a rename only with evidence like this.
+CODE_RENAMES = {"PBI": "DJT"}
+
 SCHEMA_SQL = """
 CREATE TABLE airports (
     iata              VARCHAR PRIMARY KEY,

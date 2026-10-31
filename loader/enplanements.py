@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 from openpyxl import load_workbook
 
-from loader.common import LoadReport
+from loader.common import CODE_RENAMES, LoadReport
 
 FAA_URL = (
     "https://www.faa.gov/airports/planning_capacity/passenger_allcargo_stats/"
@@ -59,7 +59,8 @@ def load_enplanements(xlsx_paths, faa_to_iata: dict, con) -> LoadReport:
     """Replace the contents of the `enplanements` table from the FAA .xlsx files.
 
     When two files give the same (airport, year), the file with the newer year
-    labels wins (P7). FAA codes are translated only through `faa_to_iata`;
+    labels wins (P7). Old codes are renamed first (CODE_RENAMES, decisions 7.6),
+    then FAA codes are translated only through `faa_to_iata`;
     untranslated codes are skipped and listed in the warnings.
     """
     files = [_read_file(p) for p in xlsx_paths]
@@ -81,7 +82,7 @@ def load_enplanements(xlsx_paths, faa_to_iata: dict, con) -> LoadReport:
             }
             if not isinstance(faa, str) or not faa.strip() or not numbers:
                 continue  # blank or summary row
-            faa = faa.strip()
+            faa = CODE_RENAMES.get(faa.strip(), faa.strip())
             iata = faa_to_iata.get(faa)
             if iata is None:
                 if faa not in warned:
