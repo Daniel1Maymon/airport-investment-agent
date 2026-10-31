@@ -4,10 +4,11 @@ What it is:   The common frame of all agent tools: the result format, the tool l
               shared setting types and checks, and run_tool, the only way a tool is run.
 Why we need:  The AI never writes SQL. It sends a tool name and settings; run_tool checks
               the settings with the tool's pydantic model and only then runs the tool.
-Used by:      app/tools/find.py, app/tools/rank.py, app/tools/profile.py.
+Used by:      app/tools/find.py, app/tools/rank.py, app/tools/profile.py,
+              app/tools/unmet.py, app/tools/info.py, app/tools/live.py.
               tests: test_step08_tool_base.py, test_step09_resolver.py,
-              test_step10_rank_profile.py.
-              Planned: the tool files of Steps 11-12 and the Step 14 agent loop.
+              test_step10_rank_profile.py, test_step12_unmet_info_live.py.
+              Planned: the tool files of Step 11 and the Step 14 agent loop.
 Uses:         app/measures.py (MEASURES), app/refusals.py (REFUSALS),
               app/tools/resolver.py (resolve_airport, which reads the airports table).
 Main parts:   US_STATES - the 50 states + DC.

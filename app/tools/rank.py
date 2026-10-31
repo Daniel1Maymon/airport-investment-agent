@@ -8,8 +8,9 @@ Why we need:  Answers "which airports are strong candidates?", "10 most delayed 
               "rank again with growth at 60%". Python does every number; the AI explains.
 Used by:      app/tools/__init__.py (the import registers the tool); app/tools/profile.py
               (grade_every_measure, about_period, about_assumptions, size_filter_text,
-              DEFAULT_MIN_ENPLANEMENTS). The AI calls the tool through run_tool.
-              tests: test_step10_rank_profile.py.
+              DEFAULT_MIN_ENPLANEMENTS); app/tools/unmet.py (grade_every_measure,
+              about_assumptions, DEFAULT_MIN_ENPLANEMENTS, NOTE_DELAYS, NOTE_TAXI). The AI
+              calls the tool through run_tool. tests: test_step10_rank_profile.py.
 Uses:         app/measures.py (compute_measures, YEAR), app/scoring.py (score_airports,
               percentile_grades, DEFAULT_WEIGHTS, WEIGHT_MEASURES), app/tools/base.py,
               app/tools/find.py (Region, Size), app/tools/resolver.py (load_airports,
