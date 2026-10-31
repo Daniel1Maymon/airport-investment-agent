@@ -34,6 +34,8 @@ const sendBtn = document.getElementById("send");
 const newChatBtn = document.getElementById("new-chat");
 const micBtn = document.getElementById("mic");
 const chatIdEl = document.getElementById("chat-id");
+const welcomeEl = document.getElementById("welcome");
+const methodEl = document.getElementById("method");
 
 let busy = false;
 
@@ -67,7 +69,7 @@ function clearChatId() {
 
 function showChatId() {
   const id = getChatId();
-  chatIdEl.textContent = id ? "Chat ID: " + id : "Chat ID: new chat";
+  chatIdEl.textContent = id ? "Chat ID: " + id : ""; // nothing to show before the first answer
 }
 
 // ---------- Small helpers to build page elements from text ----------
@@ -284,10 +286,16 @@ function renderTable(t) {
 
 // ---------- One turn: question, then answer or refusal, tables, steps ----------
 
+// P105: the welcome screen shows only while the chat is empty.
+function updateWelcome() {
+  welcomeEl.hidden = messagesEl.children.length > 0;
+}
+
 function addQuestion(text) {
   const turn = el("div", "turn");
   turn.appendChild(el("div", "msg user", text));
   messagesEl.appendChild(turn);
+  updateWelcome();
   return turn;
 }
 
@@ -397,6 +405,7 @@ async function reloadChat() {
   if (!reply) {
     // server down: keep the chat ID so a later reload can show the chat again
     messagesEl.appendChild(el("div", "msg refusal", NO_SERVER_MESSAGE));
+    updateWelcome();
   } else if (reply.refusal && reply.refusal.cause === "chat_not_found") {
     clearChatId();
   } else {
@@ -422,7 +431,35 @@ newChatBtn.addEventListener("click", function () {
   if (busy) return;
   clearChatId();
   messagesEl.replaceChildren();
+  updateWelcome();
+  window.scrollTo(0, 0);
   inputEl.focus();
+});
+
+// ---------- Example questions and the "How the score works" panel (P105) ----------
+
+welcomeEl.querySelectorAll("button[data-q]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    if (busy) return;
+    inputEl.value = b.getAttribute("data-q");
+    send();
+  });
+});
+
+function openMethod() {
+  if (typeof methodEl.showModal === "function") methodEl.showModal();
+  else methodEl.setAttribute("open", "");
+}
+document.getElementById("open-method").addEventListener("click", openMethod);
+document.getElementById("open-method-2").addEventListener("click", openMethod);
+
+document.getElementById("close-method").addEventListener("click", function () {
+  if (typeof methodEl.close === "function") methodEl.close();
+  else methodEl.removeAttribute("open");
+});
+
+methodEl.addEventListener("click", function (e) {
+  if (e.target === methodEl) methodEl.close(); // a click on the dark backdrop closes it
 });
 
 // ---------- Voice input (bonus): fills the message box, never sends by itself ----------

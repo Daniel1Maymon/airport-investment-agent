@@ -7,7 +7,8 @@ Used by:    The browser. Served as plain files (locally on port 5500, online by 
 Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
 Main parts: header (title, chat ID, New chat), the message list, the message box with
             the microphone button (only shown when the browser has speech recognition) and Send.
-Design:     Implementation plan P92-P98, P104. The styles below keep the page readable at phone
+Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
+            "How the score works" panel: static text, checked against docs/scoring.md). The styles below keep the page readable at phone
             width (375 px): 16 px side margins, text wraps, and wide tables scroll sideways
             inside their own box, never the whole page (P97).
 -->
@@ -100,7 +101,7 @@ Design:     Implementation plan P92-P98, P104. The styles below keep the page re
     .steps ul { margin: 0; padding-left: 20px; }
 
     .composer {
-      position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 16px;
+      position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 4px;
       display: flex; gap: 8px; align-items: flex-end;
     }
     #message {
@@ -116,6 +117,73 @@ Design:     Implementation plan P92-P98, P104. The styles below keep the page re
       .answer { font-size: 16px; }
       .user { max-width: 92%; }
     }
+
+    /* ---------- Welcome screen and method panel (P105) ---------- */
+    :root { --navy: #13263f; --sign: #f4b400; --paper: #eef1f4; }
+    body { background: var(--paper); }
+    header, .composer { background: var(--paper); }
+    .serif { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; }
+    header h1 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-size: 21px; color: var(--navy); }
+    .header-actions { display: flex; gap: 8px; }
+    button.link { background: none; border: none; color: var(--navy); padding: 9px 6px; text-decoration: underline; text-underline-offset: 3px; }
+    button:focus-visible, summary:focus-visible { outline: 3px solid var(--sign); outline-offset: 2px; }
+
+    #welcome { padding: 36px 0 16px; color: var(--navy); }
+    #welcome[hidden] { display: none; }
+    #welcome h2 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-weight: 600; font-size: clamp(30px, 6vw, 44px); line-height: 1.1; letter-spacing: -0.015em; margin: 0 0 16px; max-width: 18ch; }
+    .lead { font-size: 18px; line-height: 1.6; max-width: 60ch; margin: 0 0 32px; color: #2c3e55; }
+    .section-title { font-size: 15px; font-weight: 650; margin: 0 0 12px; color: var(--navy); }
+
+    /* The one bold element: the score as an airfield sign */
+    .sign { display: grid; grid-template-columns: 40fr 60fr; border-radius: 6px; overflow: hidden; border: 3px solid var(--navy); margin-bottom: 10px; }
+    .sign > div { padding: 12px 16px; font-weight: 700; font-size: 17px; letter-spacing: 0.02em; }
+    .sign .demand { background: var(--sign); color: var(--navy); }
+    .sign .strain { background: var(--navy); color: var(--sign); }
+    .sign b { font-size: 26px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+    .sign-parts { display: grid; grid-template-columns: 40fr 60fr; gap: 0 16px; font-size: 14.5px; color: #2c3e55; margin-bottom: 32px; }
+    .sign-parts ul { margin: 0; padding-left: 18px; }
+    .sign-parts li { margin-bottom: 3px; }
+    .sign-note { font-size: 14.5px; color: #4a5b70; max-width: 64ch; margin: 0 0 36px; }
+
+    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .examples button {
+      text-align: left; background: var(--card); color: var(--navy); border: 1px solid #cdd5df; border-left: 4px solid var(--sign);
+      border-radius: 6px; padding: 14px 16px; font-size: 15.5px; line-height: 1.4;
+    }
+    .examples button:hover:not(:disabled) { border-color: var(--navy); border-left-color: var(--sign); filter: none; }
+    .examples small { display: block; color: #5f6b7a; font-size: 13px; margin-top: 4px; }
+
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; border-top: 1px solid #d3dae3; padding-top: 24px; font-size: 14.5px; color: #2c3e55; }
+    .facts ul { margin: 0; padding-left: 18px; }
+    .facts li { margin-bottom: 6px; }
+    .facts strong { color: var(--navy); }
+
+    .more { font-size: 14px; color: #5f6b7a; margin: 0; }
+    button.link.inline { padding: 0; font-size: 14px; }
+    .disclaimer { font-size: 12.5px; color: #6b7684; text-align: center; margin: 4px 0 0; }
+
+    dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 10px; padding: 0; color: var(--ink); box-shadow: 0 20px 60px rgba(19, 38, 63, 0.3); }
+    dialog#method::backdrop { background: rgba(19, 38, 63, 0.45); }
+    .method-inner { padding: 28px 30px 24px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
+    .method-inner h2 { font-family: "Iowan Old Style", "Charter", "Palatino Linotype", Palatino, Georgia, serif; font-size: 26px; margin: 0 0 8px; color: var(--navy); }
+    .method-inner h3 { font-size: 16px; margin: 22px 0 6px; color: var(--navy); }
+    .method-inner p, .method-inner li { font-size: 15px; }
+    .method-inner ul { padding-left: 20px; margin: 0; }
+    .method-inner table { font-size: 14px; margin-top: 6px; }
+    .method-inner td, .method-inner th { white-space: normal; }
+    .method-close { position: sticky; top: 0; float: right; margin: -8px -10px 0 0; }
+
+    @media (max-width: 600px) {
+      .examples, .facts, .sign-parts { grid-template-columns: 1fr; }
+      .sign-parts ul + ul { margin-top: 8px; }
+      .sign > div { font-size: 15px; padding: 10px 12px; }
+      .sign b { font-size: 21px; }
+      .method-inner { padding: 22px 18px; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      #welcome { animation: rise 0.5s ease-out both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    }
   </style>
 </head>
 <body>
@@ -123,18 +191,105 @@ Design:     Implementation plan P92-P98, P104. The styles below keep the page re
     <header>
       <div class="brand">
         <h1>Airport Investment Agent</h1>
-        <p class="tagline">Find US airports where renovation pays off, from public flight data.</p>
+        <p class="tagline">Finds US airports where terminal expansion is most likely to pay off.</p>
       </div>
-      <button id="new-chat" type="button" class="secondary">New chat</button>
+      <div class="header-actions">
+        <button id="open-method" type="button" class="link">How the score works</button>
+        <button id="new-chat" type="button" class="secondary">New chat</button>
+      </div>
       <div id="chat-id"></div>
     </header>
+
+    <section id="welcome" aria-labelledby="welcome-title">
+      <h2 id="welcome-title">Which US airports are worth expanding?</h2>
+      <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
+
+      <p class="section-title">How airports are scored</p>
+      <div class="sign" role="img" aria-label="Score: demand 40 percent, strain 60 percent">
+        <div class="demand"><b>40%</b>Demand</div>
+        <div class="strain"><b>60%</b>Strain</div>
+      </div>
+      <div class="sign-parts">
+        <ul>
+          <li>Passenger growth since 2019</li>
+          <li>Passenger growth in the last year</li>
+        </ul>
+        <ul>
+          <li>How full the planes are</li>
+          <li>Delays caused by a busy airport or airspace</li>
+          <li>Time from gate to takeoff</li>
+          <li>Flights per runway</li>
+        </ul>
+      </div>
+
+      <p class="section-title">Start with a question</p>
+      <div class="examples">
+        <button type="button" data-q="Which New England airports are strong candidates for terminal expansion?">Which New England airports are strong candidates for terminal expansion?</button>
+        <button type="button" data-q="Compare congestion at LA (LAX) and Santa Ana (SNA).">Compare congestion at LAX and Santa Ana (SNA).</button>
+        <button type="button" data-q="What % of flights out of Anchorage are long-haul?">What share of flights out of Anchorage are long-haul?</button>
+        <button type="button" data-q="What is the unmet flight demand at SFO, and why?">What is the unmet flight demand at SFO, and why?</button>
+      </div>
+
+      <p class="more">Data: US Department of Transportation and FAA, 2019–2025. <button type="button" class="link inline" id="open-method-2">Sources, method and limits</button></p>
+    </section>
     <main id="messages" aria-live="polite"></main>
     <div class="composer">
       <textarea id="message" rows="2" placeholder="Ask about US airports… (Enter sends, Shift+Enter new line)" aria-label="Your question"></textarea>
       <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
       <button id="send" type="button">Send</button>
     </div>
+    <p class="disclaimer">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</p>
   </div>
+
+  <dialog id="method" aria-labelledby="method-title">
+    <div class="method-inner">
+      <button type="button" class="secondary method-close" id="close-method">Close</button>
+      <h2 id="method-title">How the score works</h2>
+      <p>The firm wants to know where new terminal capacity will actually be used. Growth alone may fade; strain alone may fix itself. An airport with both is a strong candidate.</p>
+
+      <h3>The six measures</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Measure</th><th>What it shows</th><th>Weight</th></tr></thead>
+        <tbody>
+          <tr><td>Long-term growth</td><td>Passengers 2025 vs 2019</td><td class="num">20%</td></tr>
+          <tr><td>Recent growth</td><td>Boardings 2025 vs 2024</td><td class="num">20%</td></tr>
+          <tr><td>How full planes are</td><td>Passengers ÷ seats, 2025</td><td class="num">20%</td></tr>
+          <tr><td>Busy-airport delays</td><td>Delay minutes caused by the airport or its airspace, per arriving flight</td><td class="num">15%</td></tr>
+          <tr><td>Gate to takeoff</td><td>Average taxi-out minutes</td><td class="num">10%</td></tr>
+          <tr><td>Runway load</td><td>All departures per open runway</td><td class="num">15%</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Grades and the final score</h3>
+      <p>Each measure becomes a grade from 0 to 100: a grade of 80 means higher than 80% of US airports. Grades are always national, so a Boston grade means the same in every answer. The final score is the weighted sum of the grades. Airports with fewer than 100,000 boardings a year are left out, because a few new flights would look like huge growth.</p>
+
+      <h3>Unmet demand</h3>
+      <p>The seats an airport would need so that planes are no fuller than a healthy 80–85%. It is shown as a range, not one number, because the right target is a judgement call.</p>
+
+      <h3>Where AI is used, and where it is not</h3>
+      <ul>
+        <li>The AI understands the question, picks which fixed calculation to run, and explains the result in words.</li>
+        <li>Every number is computed by fixed, tested rules on the data. The AI cannot write its own database queries.</li>
+        <li>Each answer lists the data period, filters, missing data and assumptions under "About this data".</li>
+      </ul>
+
+      <h3>Where the numbers come from</h3>
+      <ul>
+        <li>US DOT, BTS T-100: flights, seats and passengers per route (2019, 2024, 2025).</li>
+        <li>US DOT, BTS On-Time: delays, their causes, and taxi times (2025).</li>
+        <li>FAA: passenger boardings per airport (2023–2025).</li>
+        <li>OurAirports: locations and runways.</li>
+      </ul>
+
+      <h3>Limits</h3>
+      <ul>
+        <li>No public data on terminal size or gates; runways and traffic stand in for them.</li>
+        <li>Delay data covers domestic flights of the larger US airlines only.</li>
+        <li>History, not a forecast. No construction cost, land or local politics.</li>
+        <li>US territories (Puerto Rico, Guam and others) are not covered.</li>
+      </ul>
+    </div>
+  </dialog>
   <script src="app.js"></script>
 </body>
 </html>

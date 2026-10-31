@@ -276,6 +276,7 @@ The design docs didn't fix these details. They are written here so every session
 | P98 | Errors, reload, voice | The page reads the JSON reply on any HTTP status and shows `refusal.message` when set (400/500 replies carry it, P81); only a failed request (network down, reply not JSON) shows "Could not reach the server. Try again.". The chat ID is kept in `localStorage` (wrapped in try/catch); on load a stored ID is reloaded with `GET /chat/{id}`; if the reply's refusal is `chat_not_found`, the ID is cleared and an empty chat shown. "New chat" clears the ID and the messages. While waiting, Send is disabled and Enter does not send either. Voice: the microphone button is shown only when the browser has speech recognition (`SpeechRecognition` or `webkitSpeechRecognition`), language `en-US`; the spoken text fills the message box and is not sent on its own. Approved 2026-10-31 (Step 17). |
 | P103 | Shorter, plainer answers | The prompt asks for at most about 250 words, the direct answer with its key number first, then at most 6 bullets; plain measure names instead of code names; no tables in the text (the page already shows the tool tables). Why: the first look at the chat page showed long answers that were hard to read. Approved 2026-10-31 (Step 17). |
 | P104 | Readable chat page | The answer text is at most about 70 characters per line with more line spacing and real heading sizes; tables the AI writes anyway (`| a | b |` lines) are drawn as real tables, still built from text nodes (P95 stays: never HTML); the tool tables sit under the answer in one closed box "Show the numbers (N tables)"; "How I got this" stays visible. Why: the first look showed a dense wall of text and raw `|---|` lines. Approved 2026-10-31 (Step 17). |
+| P105 | Welcome screen for a business reader | While the chat is empty, the page shows one question headline, one sentence on what the agent does, the score split as a sign (Demand 40%: two growth measures; Strain 60%: four crowding measures), and the four exam questions as one-click buttons. Data sources, the full method, the AI's role and the limits sit in a "How the score works" panel (header button), so the first screen stays short. A one-line note under the message box: decision support from public data, not investment advice. All text is static and matches docs/scoring.md and docs/data-sources.md. Why: the page is shown to people who do not know the project; they need the context without reading a wall of text. Approved 2026-10-31 (Step 17). |
 
 ---
 
@@ -686,7 +687,7 @@ The design docs didn't fix these details. They are written here so every session
   6. the page works at phone width;
   7. voice input fills the message box (in a browser that supports it).
 - **Real-data check:** the four exam questions through the local backend.
-- **Details:** P92–P98, P103, P104.
+- **Details:** P92–P98, P103–P105.
 - **Design:** [api.md](api.md), [architecture.md](architecture.md) part 6.
 
 ### Step 18: Put it online
