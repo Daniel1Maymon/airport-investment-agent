@@ -178,6 +178,7 @@ The design docs didn't fix these details. They are written here so every session
 | P20 | Custom weights | A dict given to `score_airports` replaces `DEFAULT_WEIGHTS`; keys it leaves out count as 0. `WeightsError` if a key is not D1…S4, a value is negative, or the total is not 100. |
 | P21 | Order, rank, size filter | Kept: `enplanements` is not `None` and ≥ `min_enplanements`. Sorted by `final_score` high to low, ties by IATA code A→Z; `rank` = 1, 2, 3 … in that order. |
 | P22 | No final score | With custom weights an airport may have no value for any weighted measure (e.g. `{"D1": 100}` and no 2019 traffic). Its `final_score` is `None` (as P18 for the halves) and it is placed last, still ordered by IATA code. Approved 2026-10-31 (Step 7). |
+| P23 | Refusal keys | The refusal table in agent.md has a **Key** column (`no_data`, `airport_not_found`, `chat_not_found`, `out_of_scope`, `ai_unavailable`, `too_many_steps`, `question_too_long`, `busy`, `internal_error`). `REFUSALS` uses exactly these keys; Steps 14 and 16 pick a message by its key. Approved 2026-10-31 (Step 8). |
 
 ---
 
