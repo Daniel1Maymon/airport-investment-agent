@@ -110,13 +110,15 @@ CONGESTION = ["departures_per_runway", "nas_delay_per_flight", "taxi_out_min", "
 NEW_ENGLAND = {"CT", "ME", "MA", "NH", "RI", "VT"}
 
 BASE_KEYS = {"iata", "name", "city", "state", "size"}
-ROW_KEYS = BASE_KEYS | {"national_rank", "region_rank", "value", "grade"}
-SCORE_ROW_KEYS = ROW_KEYS | {"demand_score", "strain_score", "grades", "flags", "missing"}
+ROW_KEYS = BASE_KEYS | {"national_rank", "region_rank", "value", "grade", "level", "demand_points", "strain_points"}
+SCORE_ROW_KEYS = ROW_KEYS | {"demand_score", "strain_score", "grades", "flags", "missing", "levels"}
 PROFILE_KEYS = BASE_KEYS | {
     "measures",
     "final_score",
     "demand_score",
     "strain_score",
+    "demand_points",
+    "strain_points",
     "national_rank",
     "flags",
     "missing",
@@ -674,7 +676,7 @@ def test_profile_has_every_measure_with_grade(tiny_db):
 
     for name in measure_names:
         cell = bos["measures"][name]
-        assert set(cell) == {"value", "grade"}
+        assert set(cell) == {"value", "grade", "level"}
         assert cell["value"] == pytest.approx(BOS_VALUES[name], abs=1e-6), name
         assert cell["grade"] == _approx(GRADES[name]["BOS"]), name
         # BTV: delay measures have no value and no grade
@@ -731,7 +733,7 @@ def test_profile_congestion_measures_and_strain_score(tiny_db):
         assert list(congestion["measures"]) == CONGESTION
         for name, (value, grade) in expected[entry["iata"]].items():
             cell = congestion["measures"][name]
-            assert set(cell) == {"value", "grade"}
+            assert set(cell) == {"value", "grade", "level"}
             assert cell["value"] == pytest.approx(value, abs=1e-6), name
             assert cell["grade"] == _approx(grade), name
             assert cell == entry["measures"][name]  # same numbers as the full measure list

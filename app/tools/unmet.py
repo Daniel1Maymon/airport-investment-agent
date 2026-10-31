@@ -7,17 +7,20 @@ What it is:   The unmet_demand tool: for each airport asked, the 2025 missing se
 Why we need:  Answers "what is the unmet flight demand at SFO, and why?" with an amount,
               not a yes/no. The target is an assumption, so the answer is always a range.
 Used by:      app/tools/__init__.py (the import registers the tool); the AI calls it through
-              run_tool. tests: test_step12_unmet_info_live.py.
+              run_tool. tests: test_step12_unmet_info_live.py, test_fix_answer_quality.py.
 Uses:         app/measures.py (compute_measures, monthly_missing_seats, YEAR),
-              app/tools/base.py, app/tools/rank.py (grade_every_measure,
+              app/tools/base.py (grade_level), app/tools/rank.py (grade_every_measure,
               DEFAULT_MIN_ENPLANEMENTS, NOTE_DELAYS, NOTE_TAXI, about_assumptions),
               app/tools/resolver.py (load_airports); tables airports, route_traffic,
               airport_delays, enplanements.
 Main parts:   TARGETS - the two fixed targets and their labels (80% high, 85% low).
+              MONTH_NAMES, OVER_TARGET_MIN - month names and the "above the target" limit (P77).
               UnmetSettings - the tool's settings: 1-5 airports, optional target 0.70-0.95.
+              annual_vs_target(load_factor, target, months) - the sentence that compares the
+                year's load factor and the months with the target (P77).
               unmet_demand(con, settings) - the tool; a ToolResult with one entry per airport.
 Design:       docs/tools.md "7. unmet_demand" and "Unmet demand: how it becomes an amount";
-              docs/decisions.md 7.17; docs/implementation-plan.md P11, P29, P50-P52.
+              docs/decisions.md 7.17; docs/implementation-plan.md P11, P29, P50-P52, P76, P77.
 """
 
 from typing import Annotated
@@ -25,11 +28,16 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from app.measures import YEAR, compute_measures, monthly_missing_seats
-from app.tools.base import Allowed, AirportList, ToolResult, register
+from app.tools.base import Allowed, AirportList, ToolResult, grade_level, register
 from app.tools.rank import DEFAULT_MIN_ENPLANEMENTS, NOTE_DELAYS, NOTE_TAXI, about_assumptions, grade_every_measure
 from app.tools.resolver import load_airports
 
 TARGETS = ((0.80, "high estimate"), (0.85, "low estimate"))
+# Three-letter month names for the annual_vs_target sentence (P77); index 0 = January.
+MONTH_NAMES = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+# A month counts as above the target only when it misses more than this many seats. Without
+# it, a month exactly at the target can show a tiny rounding leftover (about 1e-13 seats).
+OVER_TARGET_MIN = 1e-9
 CUSTOM_LABEL = "custom target"
 CAUSES = ("nas", "weather", "carrier", "late_aircraft", "security")
 
@@ -62,15 +70,54 @@ class UnmetSettings(BaseModel):
     )
 
 
-def _estimate(con, code, target, label):
+def annual_vs_target(load_factor, target, months):
+    """The sentence that compares the year with the target (P77), written by Python so the
+    AI copies it instead of working out which months are above the target.
+
+    load_factor: the airport's 2025 load factor (a fraction), or None when not known.
+    target:      the target load factor (a fraction), e.g. 0.85.
+    months:      the months_over_target list, in month order.
+    """
+    if load_factor is None:
+        return "The 2025 load factor is not known."
+    # Which side of the target the whole year is.
+    if abs(load_factor - target) <= 1e-9:
+        side = "equal to"
+    elif load_factor > target:
+        side = "above"
+    else:
+        side = "below"
+    start = f"The 2025 load factor ({load_factor:.1%}) is {side} the {target:.0%} target; "
+    # The months above the target, by name.
+    names = ", ".join(MONTH_NAMES[m["month"] - 1] for m in months)
+    if not months:
+        return start + "no month is above it."
+    if len(months) == 1:
+        return start + f"1 month is above it: {names}."
+    return start + f"{len(months)} months are above it: {names}."
+
+
+def _estimate(con, code, target, label, load_factor):
+    """One estimate at one target.
+
+    load_factor: the airport's 2025 load factor, used in the annual_vs_target sentence.
+    """
     result = monthly_missing_seats(con, code, target)
     seats = result["seats_offered"]
+    # The months that miss seats at this target, in month order (P77).
+    months = [
+        {"month": month, "load_factor": m["load_factor"], "missing_seats": m["missing_seats"]}
+        for month, m in sorted(result["by_month"].items())
+        if m["missing_seats"] > OVER_TARGET_MIN
+    ]
     return {
         "target": target,
         "label": label,
         "missing_seats": result["missing_seats"],
         "missing_flights": result["missing_flights"],
         "missing_seats_pct": result["missing_seats"] / seats if seats else None,
+        "months_over_target": months,
+        "annual_vs_target": annual_vs_target(load_factor, target, months),
     }
 
 
@@ -91,8 +138,9 @@ def _delay_causes(con, code):
     "Estimate unmet flight demand in 2025 for 1 to 5 airports (codes or names): the seats and flights "
     "missing to bring each month's planes down to a target load factor. Always gives a range: 80% target "
     "(high estimate) and 85% target (low estimate); `target_load_factor` (0.70-0.95) adds a third. Also "
-    "gives the why: load factor by month, delay minutes by cause, and the national grades of "
-    "departures_per_runway and taxi_out_min.",
+    "gives the why: load factor by month, delay minutes by cause, and the national grades (with level "
+    "words) of departures_per_runway and taxi_out_min. Each estimate lists months_over_target and an "
+    "annual_vs_target sentence that compares the year's load factor with the target.",
     UnmetSettings,
 )
 def unmet_demand(con, settings):
@@ -113,7 +161,8 @@ def unmet_demand(con, settings):
         match = info[code]
         monthly = monthly_missing_seats(con, code, TARGETS[0][0])["by_month"]
         if monthly:
-            estimates = [_estimate(con, code, target, label) for target, label in targets]
+            year_lf = raw.get("load_factor")
+            estimates = [_estimate(con, code, target, label, year_lf) for target, label in targets]
         else:
             estimates = []
             missing.append(f"{code} has no passenger flights in {YEAR}, so there is no estimate.")
@@ -141,8 +190,13 @@ def unmet_demand(con, settings):
                         for month, m in monthly.items()
                     ],
                     "delay_causes": causes,
+                    # National grade with its level word (P76).
                     "runway_and_taxi": {
-                        name: {"value": raw.get(name), "grade": grades.get(name, {}).get(code)}
+                        name: {
+                            "value": raw.get(name),
+                            "grade": grades.get(name, {}).get(code),
+                            "level": grade_level(grades.get(name, {}).get(code)),
+                        }
                         for name in ("departures_per_runway", "taxi_out_min")
                     },
                 },

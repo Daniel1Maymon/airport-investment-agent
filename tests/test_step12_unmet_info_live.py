@@ -111,7 +111,7 @@ SAMPLE = Path(__file__).resolve().parent / "fixtures" / "raw" / "faa_status_samp
 
 ABOUT_KEYS = {"data_period", "filters", "missing", "assumptions"}
 UNMET_KEYS = {"iata", "name", "city", "state", "passengers", "seats_offered", "load_factor", "estimates", "why"}
-ESTIMATE_KEYS = {"target", "label", "missing_seats", "missing_flights", "missing_seats_pct"}
+ESTIMATE_KEYS = {"target", "label", "missing_seats", "missing_flights", "missing_seats_pct", "months_over_target", "annual_vs_target"}
 CAUSES = {"nas", "weather", "carrier", "late_aircraft", "security"}
 ROUND = 0.051  # tolerance for grades rounded to 1 decimal
 
@@ -460,7 +460,7 @@ def test_unmet_why_has_monthly_load_factor_and_delay_split(tiny_db):
     # runway and taxi, with national grades (P29, pool of 6 / 5 with delay data)
     rt = why["runway_and_taxi"]
     assert set(rt) == {"departures_per_runway", "taxi_out_min"}, rt
-    assert set(rt["departures_per_runway"]) == {"value", "grade"}
+    assert set(rt["departures_per_runway"]) == {"value", "grade", "level"}
     assert rt["departures_per_runway"]["value"] == pytest.approx(10)  # 40 / 4 runways
     assert rt["departures_per_runway"]["grade"] == pytest.approx(33.3, abs=ROUND)  # 2/6
     assert rt["taxi_out_min"]["value"] == pytest.approx(20)
