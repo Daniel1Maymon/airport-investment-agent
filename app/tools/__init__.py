@@ -3,11 +3,15 @@
 What it is:   The package of agent tools. It imports each tool file, and each tool file
               adds its tool to TOOLS when it is imported.
 Why we need:  So TOOLS is full wherever app.tools is imported, and no tool is forgotten.
-Used by:      tests: test_step08_tool_base.py, test_step09_resolver.py.
+Used by:      tests: test_step08_tool_base.py, test_step09_resolver.py,
+              test_step10_rank_profile.py.
               Planned: Step 14 agent loop (sends the tools to the AI and runs them).
-Uses:         app/tools/find.py. The tool files of Steps 10-12 will be added here.
+Uses:         app/tools/find.py, app/tools/profile.py, app/tools/rank.py. The tool files
+              of Steps 11-12 will be added here.
 Main parts:   no public names, only the imports of the tool files.
-Design:       docs/tools.md "How a tool call works"; docs/implementation-plan.md Step 9.
+Design:       docs/tools.md "How a tool call works"; docs/implementation-plan.md Steps 9-10.
 """
 
 from app.tools import find  # noqa: F401
+from app.tools import profile  # noqa: F401
+from app.tools import rank  # noqa: F401

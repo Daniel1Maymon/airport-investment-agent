@@ -5,7 +5,8 @@ What it is:   Finds the airports that match what the user typed (a code, a short
 Why we need:  It never guesses. It only returns airports that are in our `airports`
               table, and an empty list means "airport not found".
 Used by:      app/tools/base.py (run_tool turns airport names in settings into codes),
-              app/tools/find.py. tests: test_step09_resolver.py.
+              app/tools/find.py, app/tools/rank.py, app/tools/profile.py.
+              tests: test_step09_resolver.py, test_step10_rank_profile.py.
 Uses:         tables airports and enplanements (2025 hub type), through one fixed query.
               No other project file.
 Main parts:   HUB_SIZES - FAA hub letter -> size in words (P26).
