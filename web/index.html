@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+What:       The chat page of the Airport Investment Intelligence Agent (Step 17).
+Why:        The exam asks for a chat interface. This page is the only thing the user sees:
+            a message box, the answers, the tables and the "How I got this" list.
+Used by:    The browser. Served as plain files (locally on port 5500, online by Vercel).
+Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
+Main parts: header (title, chat ID, New chat), the message list, the message box with
+            the microphone button (only shown when the browser has speech recognition) and Send.
+Design:     Implementation plan P92-P98. The styles below keep the page readable at phone
+            width (375 px): 16 px side margins, text wraps, and wide tables scroll sideways
+            inside their own box, never the whole page (P97).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Airport Investment Agent</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+      color: #1f2933;
+      background: #f5f7fa;
+    }
+    .page { max-width: 860px; margin: 0 auto; padding: 0 16px; min-height: 100vh; display: flex; flex-direction: column; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid #d9e2ec; }
+    header h1 { font-size: 18px; margin: 0; flex: 1 1 auto; }
+    #chat-id { font-size: 12px; color: #627d98; width: 100%; overflow-wrap: anywhere; order: 3; }
+    button {
+      font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid #2f6fb5;
+      background: #2f6fb5; color: #fff; cursor: pointer;
+    }
+    button.secondary { background: #fff; color: #2f6fb5; }
+    button:disabled { background: #bcccdc; border-color: #bcccdc; color: #f0f4f8; cursor: not-allowed; }
+    #messages { flex: 1; padding: 12px 0; min-width: 0; }
+    .turn { margin-bottom: 20px; }
+    .msg { border-radius: 8px; padding: 10px 12px; margin: 8px 0; overflow-wrap: anywhere; min-width: 0; }
+    .user { background: #dceefb; margin-left: 15%; white-space: pre-wrap; }
+    .bot { background: #fff; border: 1px solid #d9e2ec; }
+    .bot p { margin: 0 0 8px; }
+    .bot h3, .bot h4 { margin: 10px 0 6px; }
+    .bot ul { margin: 0 0 8px; padding-left: 22px; }
+    .working { color: #627d98; font-style: italic; }
+    .refusal { background: #fff8e1; border: 1px solid #f0c36d; color: #6b4e00; }
+    .table-block { margin: 12px 0; }
+    .table-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid #d9e2ec; border-radius: 6px; }
+    table { border-collapse: collapse; font-size: 13px; width: 100%; }
+    th, td { padding: 5px 8px; border-bottom: 1px solid #e4e7eb; text-align: left; white-space: nowrap; }
+    th { background: #f0f4f8; }
+    td.num { text-align: right; }
+    details { font-size: 13px; margin-top: 4px; color: #486581; }
+    details p { margin: 4px 0 2px; }
+    details ul { margin: 0; padding-left: 20px; }
+    .steps { font-size: 13px; color: #486581; }
+    .steps h4 { margin: 8px 0 4px; font-size: 13px; }
+    .steps ul { margin: 0; padding-left: 20px; }
+    .composer {
+      position: sticky; bottom: 0; background: #f5f7fa; padding: 10px 0 14px;
+      border-top: 1px solid #d9e2ec; display: flex; gap: 8px; align-items: flex-end;
+    }
+    #message {
+      flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border: 1px solid #9fb3c8;
+      border-radius: 6px; resize: vertical; min-height: 44px; max-height: 40vh;
+    }
+    #mic[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Airport Investment Agent</h1>
+      <button id="new-chat" type="button" class="secondary">New chat</button>
+      <div id="chat-id"></div>
+    </header>
+    <main id="messages" aria-live="polite"></main>
+    <div class="composer">
+      <textarea id="message" rows="2" placeholder="Ask about US airports… (Enter sends, Shift+Enter new line)" aria-label="Your question"></textarea>
+      <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
+      <button id="send" type="button">Send</button>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
