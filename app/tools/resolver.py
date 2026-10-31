@@ -6,6 +6,7 @@ Why we need:  It never guesses. It only returns airports that are in our `airpor
               table, and an empty list means "airport not found".
 Used by:      app/tools/base.py (run_tool turns airport names in settings into codes),
               app/tools/find.py, app/tools/rank.py, app/tools/profile.py,
+              app/tools/trend.py (load_airports, resolve_region for area totals),
               app/tools/unmet.py (load_airports).
               tests: test_step09_resolver.py, test_step10_rank_profile.py.
 Uses:         tables airports and enplanements (2025 hub type), through one fixed query.
