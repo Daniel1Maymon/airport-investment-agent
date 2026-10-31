@@ -11,12 +11,11 @@ Used by:      app/tools/base.py (MEASURES, the allowed measure names).
               app/tools/trend.py (traffic_by_period, enplanements_by_year,
               delays_by_period), app/tools/routes.py (route_groups, route_totals),
               app/tools/delays.py (delay_cause_minutes).
+              app/tools/unmet.py (compute_measures, monthly_missing_seats, YEAR).
               app/scoring.py takes the result of compute_measures() as input (no import).
               tests: test_step06_measures.py, test_step07_scoring.py,
               test_step08_tool_base.py, test_step10_rank_profile.py,
-              test_step11_trend_routes_delays.py.
-              Planned: Step 12 `unmet_demand` calls monthly_missing_seats() for "what is
-              the unmet demand at SFO, and why?".
+              test_step11_trend_routes_delays.py, test_step12_unmet_info_live.py.
 Uses:         tables airports, route_traffic, airport_delays, enplanements (read only).
               No other project file.
 Main parts:   YEAR - the year the measures are for (2025).
