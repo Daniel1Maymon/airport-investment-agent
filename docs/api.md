@@ -13,6 +13,8 @@ Request:
 
 `conversation_id` is left out on the first message; the backend starts a new chat and returns its ID. The page keeps only this ID.
 
+`language` is optional: `"en"` (the default) or `"he"`. With `"he"` the AI writes the answer in Hebrew (P106). Any other value is a bad request (400).
+
 Reply:
 
 ```json

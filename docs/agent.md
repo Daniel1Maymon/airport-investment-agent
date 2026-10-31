@@ -76,6 +76,8 @@ How to work: the prompt also tells the AI to use the tools for every number, to 
 
 Two more lines (P103) were added after the first look at the chat page: answers were long, used code names like `departures_per_runway`, and repeated the tables in the text.
 
+One optional line (P106): when the page is in Hebrew, a second system message after the rules asks for the whole answer in Hebrew (also for an English question), with level words and measure names in Hebrew, airport codes, names and numbers unchanged, and the out-of-scope sentence still in English. The exact text is `LANGUAGE_NOTES` in `app/agent/prompt.py`.
+
 - Name measures in plain words (for example "flights per runway", "taxi-out time", "delay per flight"), never with the code names from the tool results.
 - Do not write tables. The page shows the tool tables under your answer.
 

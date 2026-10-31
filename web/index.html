@@ -7,7 +7,7 @@ Used by:    The browser. Served as plain files (locally on port 5500, online by 
 Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
 Main parts: header (title, chat ID, New chat), the message list, the message box with
             the microphone button (only shown when the browser has speech recognition) and Send.
-Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
+Design:     Implementation plan P92-P98, P104, P105, P106 (Hebrew, right to left) (welcome screen and the
             "How the score works" panel: static text, checked against docs/scoring.md). The styles below keep the page readable at phone
             width (375 px): 16 px side margins, text wraps, and wide tables scroll sideways
             inside their own box, never the whole page (P97).
@@ -53,7 +53,7 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
     .turn { margin-bottom: 36px; }
     .msg { overflow-wrap: anywhere; min-width: 0; }
     .user {
-      margin: 0 0 14px auto; width: fit-content; max-width: 85%;
+      margin: 0 0 14px; margin-inline-start: auto; width: fit-content; max-width: 85%;
       background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 16px 16px 4px 16px;
       white-space: pre-wrap;
     }
@@ -69,7 +69,7 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
     .answer h3 { font-size: 19px; line-height: 1.35; margin: 22px 0 8px; }
     .answer h4 { font-size: 16.5px; margin: 18px 0 6px; }
     .answer > :first-child { margin-top: 0; }
-    .answer ul, .answer ol { margin: 0 0 14px; padding-left: 22px; }
+    .answer ul, .answer ol { margin: 0 0 14px; padding-inline-start: 22px; }
     .answer li { margin: 0 0 6px; }
     .answer li::marker { color: var(--muted); }
     .answer strong { font-weight: 650; }
@@ -87,18 +87,18 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
     .table-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
     .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
     table { border-collapse: collapse; font-size: 13.5px; width: 100%; line-height: 1.4; }
-    th, td { padding: 7px 10px; border-bottom: 1px solid #eef1f4; text-align: left; white-space: nowrap; }
+    th, td { padding: 7px 10px; border-bottom: 1px solid #eef1f4; text-align: start; white-space: nowrap; }
     th { background: #f3f5f8; font-weight: 600; color: #3b4754; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:nth-child(even) td { background: #fafbfc; }
-    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.num { text-align: end; font-variant-numeric: tabular-nums; }
     .table-block details { font-size: 13px; margin-top: 6px; color: var(--muted); }
     .table-block details p { margin: 6px 0 2px; }
-    .table-block details ul { margin: 0; padding-left: 20px; }
+    .table-block details ul { margin: 0; padding-inline-start: 20px; }
 
     .steps { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
     .steps h4 { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #3b4754; }
-    .steps ul { margin: 0; padding-left: 20px; }
+    .steps ul { margin: 0; padding-inline-start: 20px; }
 
     .composer {
       position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 4px;
@@ -156,7 +156,7 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
 
     .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
     .examples button {
-      text-align: left; background: var(--soft); color: var(--navy); border: 1px solid transparent;
+      text-align: start; background: var(--soft); color: var(--navy); border: 1px solid transparent;
       border-radius: 14px; padding: 16px 18px; font-size: 15px; font-weight: 500; line-height: 1.4;
       transition: background 0.15s, border-color 0.15s;
     }
@@ -167,7 +167,7 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
     .disclaimer { font-size: 12px; color: #8a94a3; text-align: center; margin: 0 0 12px; }
 
     /* Chat parts in the same style */
-    .user { background: var(--navy); border-radius: 18px 18px 6px 18px; }
+    .user { background: var(--navy); border-radius: 18px; border-end-end-radius: 6px; }
     .bot { border-radius: 18px; border-color: var(--line); box-shadow: none; }
     .bot-label { text-transform: none; letter-spacing: 0; font-size: 13px; color: #6b7685; }
     details.numbers > summary { color: var(--navy); }
@@ -180,10 +180,10 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
     .method-inner h2 { font-size: 26px; font-weight: 750; letter-spacing: -0.025em; margin: 0 0 8px; color: var(--navy); }
     .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; color: var(--navy); }
     .method-inner p, .method-inner li { font-size: 15px; color: #3b4656; }
-    .method-inner ul { padding-left: 20px; margin: 0; }
+    .method-inner ul { padding-inline-start: 20px; margin: 0; }
     .method-inner table { font-size: 14px; margin-top: 6px; }
     .method-inner td, .method-inner th { white-space: normal; }
-    .method-close { position: sticky; top: 0; float: right; margin: -6px -8px 0 0; }
+    .method-close { position: sticky; top: 0; float: inline-end; margin-block-start: -6px; margin-inline-end: -8px; }
 
     @media (max-width: 600px) {
       .examples, .score { grid-template-columns: 1fr; }
@@ -194,23 +194,35 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
       #welcome { animation: rise 0.5s ease-out both; }
       @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
     }
+    /* ---------- Hebrew, right to left (P106) ---------- */
+    html:not([lang="he"]) [data-lang="he"], html[lang="he"] [data-lang="en"] { display: none !important; }
+    html[lang="he"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; }
+    html[lang="he"] #welcome h2, html[lang="he"] .score .pct, html[lang="he"] .method-inner h2 { letter-spacing: 0; }
+    html[lang="he"] #welcome h2 { line-height: 1.15; max-width: 22ch; }
+    .answer { margin-inline-end: auto; } /* an English answer on a Hebrew page sits on the left, and the reverse */
+    .table-block { direction: ltr; text-align: left; } /* tool tables are English data */
+    #lang-toggle { font-weight: 600; }
+    .lang-btn > span { display: inline-flex; align-items: center; gap: 7px; }
+    .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 31, 53, 0.15); flex: none; }
   </style>
 </head>
 <body>
   <div class="page">
     <header>
       <div class="brand">
-        <h1>Airport Investment Agent</h1>
+        <h1><span data-lang="en">Airport Investment Agent</span><span data-lang="he">סוכן השקעות בשדות תעופה</span></h1>
         <p class="tagline">Finds US airports where terminal expansion is most likely to pay off.</p>
       </div>
       <div class="header-actions">
-        <button id="open-method" type="button" class="link">How the score works</button>
-        <button id="new-chat" type="button" class="secondary">New chat</button>
+        <button id="lang-toggle" type="button" class="link lang-btn"><span data-lang="en" lang="he"><svg class="flag" viewBox="0 0 220 160" aria-hidden="true"><rect width="220" height="160" fill="#fff"/><rect y="15" width="220" height="25" fill="#0038b8"/><rect y="120" width="220" height="25" fill="#0038b8"/><g fill="none" stroke="#0038b8" stroke-width="5.5"><path d="M110 52 L136 97 L84 97 Z"/><path d="M110 108 L84 63 L136 63 Z"/></g></svg>עברית</span><span data-lang="he" lang="en"><svg class="flag" viewBox="0 0 190 100" aria-hidden="true"><rect width="190" height="100" fill="#b22234"/><g fill="#fff"><rect y="7.7" width="190" height="7.7"/><rect y="23.1" width="190" height="7.7"/><rect y="38.5" width="190" height="7.7"/><rect y="53.8" width="190" height="7.7"/><rect y="69.2" width="190" height="7.7"/><rect y="84.6" width="190" height="7.7"/></g><rect width="76" height="53.8" fill="#3c3b6e"/></svg>English</span></button>
+        <button id="open-method" type="button" class="link open-method"><span data-lang="en">How the score works</span><span data-lang="he">איך עובד הציון</span></button>
+        <button id="new-chat" type="button" class="secondary"><span data-lang="en">New chat</span><span data-lang="he">שיחה חדשה</span></button>
       </div>
       <div id="chat-id"></div>
     </header>
 
     <section id="welcome" aria-labelledby="welcome-title">
+      <div data-lang="en">
       <h2 id="welcome-title">Which US airports are worth expanding?</h2>
       <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
 
@@ -244,20 +256,56 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
         <button type="button" data-q="What is the unmet flight demand at SFO, and why?">What is the unmet flight demand at SFO, and why?</button>
       </div>
 
-      <p class="more">Data: US Department of Transportation and FAA, 2019–2025. <button type="button" class="link inline" id="open-method-2">Sources, method and limits</button></p>
+      <p class="more">Data: US Department of Transportation and FAA, 2019–2025. <button type="button" class="link inline open-method">Sources, method and limits</button></p>
+      </div>
+      <div data-lang="he">
+      <h2>באילו שדות תעופה בארה״ב כדאי להשקיע בהרחבה?</h2>
+      <p class="lead">שאלו על כל אחד מ־679 שדות התעופה בארה״ב. כל תשובה מדרגת את השדות לפי צמיחה ועומס, ומציגה את המספרים שמאחוריה.</p>
+
+      <p class="section-title">איך מחושב הציון</p>
+      <div class="score" role="group" aria-label="חלוקת הציון">
+        <div class="demand">
+          <div class="pct">40%</div>
+          <div class="name">ביקוש</div>
+          <ul>
+            <li>גידול בנוסעים מאז 2019</li>
+            <li>גידול בנוסעים בשנה האחרונה</li>
+          </ul>
+        </div>
+        <div class="strain">
+          <div class="pct">60%</div>
+          <div class="name">עומס</div>
+          <ul>
+            <li>כמה מלאים המטוסים</li>
+            <li>עיכובים בגלל שדה או מרחב אווירי עמוסים</li>
+            <li>זמן מהשער ועד ההמראה</li>
+            <li>טיסות לכל מסלול</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="section-title">התחילו עם שאלה</p>
+      <div class="examples">
+        <button type="button" data-q="אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?">אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?</button>
+        <button type="button" data-q="השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).">השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).</button>
+        <button type="button" data-q="איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?">איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?</button>
+        <button type="button" data-q="מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?">מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?</button>
+      </div>
+      <p class="more">נתונים: משרד התחבורה האמריקאי ו־FAA, ‏2019–2025. <button type="button" class="link inline open-method">מקורות, שיטה ומגבלות</button></p>
+      </div>
     </section>
     <main id="messages" aria-live="polite"></main>
     <div class="composer">
       <textarea id="message" rows="2" placeholder="Ask about US airports… (Enter sends, Shift+Enter new line)" aria-label="Your question"></textarea>
       <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
-      <button id="send" type="button">Send</button>
+      <button id="send" type="button"><span data-lang="en">Send</span><span data-lang="he">שליחה</span></button>
     </div>
-    <p class="disclaimer">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</p>
+    <p class="disclaimer"><span data-lang="en">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</span><span data-lang="he">כלי לתמיכה בהחלטות מנתונים ציבוריים, לא ייעוץ השקעות. ה־AI מסביר; כללים קבועים מחשבים כל מספר.</span></p>
   </div>
 
-  <dialog id="method" aria-labelledby="method-title">
-    <div class="method-inner">
-      <button type="button" class="secondary method-close" id="close-method">Close</button>
+  <dialog id="method" aria-label="How the score works">
+    <div class="method-inner" data-lang="en">
+      <button type="button" class="secondary method-close" data-close>Close</button>
       <h2 id="method-title">How the score works</h2>
       <p>The firm wants to know where new terminal capacity will actually be used. Growth alone may fade; strain alone may fix itself. An airport with both is a strong candidate.</p>
 
@@ -301,6 +349,54 @@ Design:     Implementation plan P92-P98, P104, P105 (welcome screen and the
         <li>Delay data covers domestic flights of the larger US airlines only.</li>
         <li>History, not a forecast. No construction cost, land or local politics.</li>
         <li>US territories (Puerto Rico, Guam and others) are not covered.</li>
+      </ul>
+    </div>
+    <div class="method-inner" data-lang="he">
+      <button type="button" class="secondary method-close" data-close>סגירה</button>
+      <h2>איך עובד הציון</h2>
+      <p>החברה רוצה לדעת איפה קיבולת טרמינל חדשה באמת תנוצל. צמיחה לבדה עלולה לדעוך; עומס לבדו עשוי להיפתר מעצמו. שדה שיש בו את שניהם הוא מועמד חזק.</p>
+
+      <h3>ששת המדדים</h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>מדד</th><th>מה הוא מראה</th><th>משקל</th></tr></thead>
+        <tbody>
+          <tr><td>צמיחה ארוכת טווח</td><td>נוסעים ב־2025 מול 2019</td><td class="num">20%</td></tr>
+          <tr><td>צמיחה אחרונה</td><td>עולים למטוס ב־2025 מול 2024</td><td class="num">20%</td></tr>
+          <tr><td>כמה מלאים המטוסים</td><td>נוסעים ÷ מושבים, 2025</td><td class="num">20%</td></tr>
+          <tr><td>עיכובים משדה עמוס</td><td>דקות עיכוב שנגרמו מהשדה או מהמרחב האווירי, לכל טיסה נוחתת</td><td class="num">15%</td></tr>
+          <tr><td>מהשער להמראה</td><td>ממוצע דקות ההסעה עד ההמראה</td><td class="num">10%</td></tr>
+          <tr><td>עומס מסלולים</td><td>כל ההמראות לכל מסלול פעיל</td><td class="num">15%</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>ציונים והציון הסופי</h3>
+      <p>כל מדד הופך לציון בין 0 ל־100: ציון 80 פירושו גבוה מ־80% משדות התעופה בארה״ב. הציונים תמיד ארציים, כך שציון של בוסטון אומר אותו דבר בכל תשובה. הציון הסופי הוא הסכום המשוקלל של הציונים. שדות עם פחות מ־100,000 עולים למטוס בשנה לא נכללים, כי כמה טיסות חדשות היו נראות כמו צמיחה ענקית.</p>
+
+      <h3>ביקוש לא מסופק</h3>
+      <p>המושבים שהשדה היה צריך כדי שהמטוסים לא יהיו מלאים יותר מ־80–85%, רמה בריאה. התוצאה מוצגת כטווח ולא כמספר אחד, כי היעד הנכון הוא עניין של שיקול דעת.</p>
+
+      <h3>איפה משתמשים ב־AI, ואיפה לא</h3>
+      <ul>
+        <li>ה־AI מבין את השאלה, בוחר איזה חישוב קבוע להריץ, ומסביר את התוצאה במילים.</li>
+        <li>כל מספר מחושב בכללים קבועים ובדוקים על הנתונים. ה־AI לא יכול לכתוב שאילתות משלו למסד הנתונים.</li>
+        <li>כל תשובה מציינת את תקופת הנתונים, הסינונים, הנתונים החסרים וההנחות, תחת "על הנתונים".</li>
+      </ul>
+
+      <h3>מאיפה המספרים</h3>
+      <ul>
+        <li>משרד התחבורה האמריקאי, BTS T-100: טיסות, מושבים ונוסעים לכל קו (2019, 2024, 2025).</li>
+        <li>משרד התחבורה האמריקאי, BTS On-Time: עיכובים, הסיבות שלהם וזמני הסעה (2025).</li>
+        <li>FAA: עולים למטוס לכל שדה (2023–2025).</li>
+        <li>OurAirports: מיקומים ומסלולים.</li>
+      </ul>
+
+      <h3>מגבלות</h3>
+      <ul>
+        <li>אין נתונים ציבוריים על גודל טרמינל או מספר שערים; מסלולים ותנועה משמשים במקומם.</li>
+        <li>נתוני העיכובים מכסים רק טיסות פנים של חברות התעופה האמריקאיות הגדולות.</li>
+        <li>היסטוריה, לא תחזית. בלי עלויות בנייה, קרקע או פוליטיקה מקומית.</li>
+        <li>טריטוריות של ארה״ב (פוארטו ריקו, גואם ואחרות) לא נכללות.</li>
+        <li>טבלאות הנתונים מוצגות באנגלית, כמו במקור.</li>
       </ul>
     </div>
   </dialog>

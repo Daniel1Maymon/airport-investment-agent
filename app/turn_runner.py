@@ -53,7 +53,7 @@ class TurnRunner:
         with self._locks_guard:
             return self._chat_locks.setdefault(chat_id, threading.Lock())
 
-    def run(self, chat_id, message, timeout):
+    def run(self, chat_id, message, timeout, language="en"):
         """Run one turn of the chat, waiting at most `timeout` seconds (P84, P85).
 
         Returns one of:
@@ -74,7 +74,7 @@ class TurnRunner:
             con = None
             try:
                 con = open_airport_db(self.airports_db)  # read-only
-                outcome["result"] = run_turn(self.store, con, self.provider, chat_id, message)
+                outcome["result"] = run_turn(self.store, con, self.provider, chat_id, message, language)
             except Exception:
                 # Full details go to the server log only, never to the reply (P86).
                 logger.exception("A chat turn failed.")

@@ -25,7 +25,96 @@ Design:     Implementation plan P92-P98.
 const BACKEND_URL = "http://localhost:8000";
 
 const REQUEST_TIME_LIMIT_MS = 75000; // a bit longer than the backend's own 60-second limit
-const NO_SERVER_MESSAGE = "Could not reach the server. Try again.";
+// P106: the page speaks English or Hebrew (right to left). Only the page's own words are
+// translated; the AI answers in the language of the question, and the data tables stay English.
+const TEXT = {
+  en: {
+    noServer: "Could not reach the server. Try again.",
+    chatId: "Chat ID: ",
+    working: "Working…",
+    agent: "Agent",
+    numbers: function (n) { return "Show the numbers (" + n + (n === 1 ? " table)" : " tables)"); },
+    steps: "How I got this",
+    about: "About this data",
+    period: "Data period:", filters: "Filters:", missing: "Missing:", assumptions: "Assumptions:",
+    placeholder: "Ask about US airports… (Enter sends, Shift+Enter new line)",
+    mic: "Mic", stop: "Stop", speak: "Speak your question", question: "Your question",
+    otherLang: "עברית", speech: "en-US",
+  },
+  he: {
+    noServer: "אין חיבור לשרת. נסו שוב.",
+    chatId: "מזהה שיחה: ",
+    working: "עובד על זה…",
+    agent: "הסוכן",
+    numbers: function (n) { return n === 1 ? "הצגת המספרים (טבלה אחת)" : "הצגת המספרים (" + n + " טבלאות)"; },
+    steps: "איך הגעתי לזה",
+    about: "על הנתונים",
+    period: "תקופת הנתונים:", filters: "סינונים:", missing: "חסר:", assumptions: "הנחות:",
+    placeholder: "שאלו על שדות תעופה בארה״ב… (Enter שולח, Shift+Enter שורה חדשה)",
+    mic: "הקלטה", stop: "עצירה", speak: "הקלטת השאלה", question: "השאלה שלך",
+    otherLang: "English", speech: "he-IL",
+  },
+};
+let lang = "en";
+
+// P106: refusal messages in Hebrew, by cause. The backend sends English; on the Hebrew
+// page we show these instead. An unknown cause falls back to the backend's text.
+const REFUSALS_HE = {
+  no_data: "אין לנו נתונים כדי לענות על השאלה הזו. נסו לשאול משהו אחר.",
+  airport_not_found: "לא מצאתי את שדה התעופה. בדקו את השם או השתמשו בקוד בן 3 האותיות.",
+  chat_not_found: "לא מצאתי את השיחה הזו. התחילו שיחה חדשה.",
+  out_of_scope: "אני עונה רק על שאלות על שדות תעופה בארה״ב. שאלו על שדות תעופה בארה״ב.",
+  ai_unavailable: "שירות ה־AI לא זמין כרגע. נתוני שדות התעופה תקינים; נסו שוב מאוחר יותר.",
+  too_many_steps: "השאלה הזו דרשה יותר מדי שלבים. נסו שאלה ממוקדת יותר.",
+  question_too_long: "השאלה ארוכה מדי (יותר מ־1,000 תווים). קצרו אותה.",
+  busy: "אני עדיין עונה על השאלה הקודמת. חכו לתשובה הזו קודם.",
+  internal_error: "משהו השתבש אצלנו. נסו שוב מאוחר יותר.",
+};
+
+// P106: the "How I got this" labels in Hebrew. The backend writes "<label> (<settings>)";
+// on the Hebrew page the label is swapped and the settings stay as sent, left to right.
+const STEP_LABELS_HE = {
+  "Looked up airports": "חיפשתי שדות תעופה",
+  "Ranked airports": "דירגתי שדות תעופה",
+  "Looked up airport profiles": "שלפתי פרופיל של שדות תעופה",
+  "Looked at traffic over time": "בדקתי את התנועה לאורך זמן",
+  "Split departures into groups": "חילקתי את ההמראות לקבוצות",
+  "Looked at delay causes": "בדקתי את סיבות העיכובים",
+  "Estimated unmet demand": "הערכתי את הביקוש הלא מסופק",
+  "Checked which data we have": "בדקתי אילו נתונים יש לנו",
+  "Checked today's FAA status": "בדקתי את מצב ה־FAA היום",
+};
+
+function stepItem(text) {
+  const li = el("li");
+  if (lang === "he") {
+    const label = Object.keys(STEP_LABELS_HE).find(function (k) {
+      return text === k || text.startsWith(k + " ");
+    });
+    if (label) {
+      li.appendChild(document.createTextNode(STEP_LABELS_HE[label]));
+      const rest = text.slice(label.length).trim();
+      if (rest) {
+        li.appendChild(document.createTextNode(" "));
+        const bdi = document.createElement("bdi");
+        bdi.dir = "ltr";
+        bdi.textContent = rest;
+        li.appendChild(bdi);
+      }
+      return li;
+    }
+  }
+  li.textContent = text;
+  return li;
+}
+
+function refusalText(refusal) {
+  if (lang === "he" && Object.prototype.hasOwnProperty.call(REFUSALS_HE, refusal.cause)) return REFUSALS_HE[refusal.cause];
+  return refusal.message;
+}
+function T(key) {
+  return TEXT[lang][key];
+}
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const messagesEl = document.getElementById("messages");
@@ -69,7 +158,7 @@ function clearChatId() {
 
 function showChatId() {
   const id = getChatId();
-  chatIdEl.textContent = id ? "Chat ID: " + id : ""; // nothing to show before the first answer
+  chatIdEl.textContent = id ? T("chatId") + id : ""; // nothing to show before the first answer
 }
 
 // ---------- Small helpers to build page elements from text ----------
@@ -180,6 +269,7 @@ function renderAnswerTable(lines) {
 
 function renderAnswer(text) {
   const box = el("div", "answer");
+  box.dir = "auto";
   const lines = text.split(/\r?\n/);
   let para = null;
   let list = null;
@@ -232,12 +322,12 @@ function renderAnswer(text) {
 
 function renderAbout(about) {
   const details = el("details"); // closed at first
-  details.appendChild(el("summary", null, "About this data"));
+  details.appendChild(el("summary", null, T("about")));
   if (!about || typeof about !== "object") return details;
   if (about.data_period) {
-    details.appendChild(el("p", null, "Data period: " + about.data_period));
+    details.appendChild(el("p", null, T("period") + " " + about.data_period));
   }
-  [["filters", "Filters:"], ["missing", "Missing:"], ["assumptions", "Assumptions:"]].forEach(function (pair) {
+  [["filters", T("filters")], ["missing", T("missing")], ["assumptions", T("assumptions")]].forEach(function (pair) {
     let items = about[pair[0]];
     if (!items || (Array.isArray(items) && items.length === 0)) return;
     if (!Array.isArray(items)) items = [items];
@@ -293,7 +383,12 @@ function updateWelcome() {
 
 function addQuestion(text) {
   const turn = el("div", "turn");
-  turn.appendChild(el("div", "msg user", text));
+  // the bubble follows the page side; the text inside follows its own language
+  const q = el("div", "msg user");
+  const words = el("span", null, text);
+  words.dir = "auto";
+  q.appendChild(words);
+  turn.appendChild(q);
   messagesEl.appendChild(turn);
   updateWelcome();
   return turn;
@@ -301,10 +396,10 @@ function addQuestion(text) {
 
 function addReply(turn, reply) {
   const bot = el("div", "msg bot");
-  bot.appendChild(el("div", "bot-label", "Agent"));
+  bot.appendChild(el("div", "bot-label", T("agent")));
   if (reply.refusal && reply.refusal.message) {
     bot.classList.add("refusal");
-    bot.appendChild(el("p", null, reply.refusal.message));
+    bot.appendChild(el("p", null, refusalText(reply.refusal)));
   } else if (reply.answer) {
     bot.appendChild(renderAnswer(String(reply.answer)));
   }
@@ -313,7 +408,7 @@ function addReply(turn, reply) {
     // P104: the numbers sit under the answer in one closed box, so the answer is read first
     const numbers = el("details", "numbers");
     numbers.appendChild(
-      el("summary", null, "Show the numbers (" + tables.length + (tables.length === 1 ? " table)" : " tables)"))
+      el("summary", null, T("numbers")(tables.length))
     );
     tables.forEach(function (t) {
       numbers.appendChild(renderTable(t));
@@ -323,10 +418,10 @@ function addReply(turn, reply) {
   const steps = reply.steps || [];
   if (steps.length) {
     const box = el("div", "steps");
-    box.appendChild(el("h4", null, "How I got this"));
+    box.appendChild(el("h4", null, T("steps")));
     const ul = el("ul");
     steps.forEach(function (s) {
-      ul.appendChild(el("li", null, s));
+      ul.appendChild(stepItem(String(s)));
     });
     box.appendChild(ul);
     bot.appendChild(box);
@@ -335,7 +430,7 @@ function addReply(turn, reply) {
 }
 
 function addNoServer(turn) {
-  addReply(turn, { refusal: { message: NO_SERVER_MESSAGE } });
+  addReply(turn, { refusal: { message: T("noServer") } });
 }
 
 // ---------- Talking to the backend ----------
@@ -371,11 +466,12 @@ async function send() {
   setBusy(true);
   inputEl.value = "";
   const turn = addQuestion(text);
-  const working = el("div", "msg working", "Working…");
+  const working = el("div", "msg working", T("working"));
   turn.appendChild(working);
   turn.scrollIntoView({ block: "start" });
 
-  const body = { message: text };
+  // P106: the page language; "he" makes the backend ask the AI for a Hebrew answer.
+  const body = { message: text, language: lang };
   const id = getChatId();
   if (id) body.conversation_id = id;
   const reply = await callBackend("/chat", {
@@ -404,7 +500,7 @@ async function reloadChat() {
   const reply = await callBackend("/chat/" + encodeURIComponent(id), { method: "GET" });
   if (!reply) {
     // server down: keep the chat ID so a later reload can show the chat again
-    messagesEl.appendChild(el("div", "msg refusal", NO_SERVER_MESSAGE));
+    messagesEl.appendChild(el("div", "msg refusal", T("noServer")));
     updateWelcome();
   } else if (reply.refusal && reply.refusal.cause === "chat_not_found") {
     clearChatId();
@@ -450,12 +546,15 @@ function openMethod() {
   if (typeof methodEl.showModal === "function") methodEl.showModal();
   else methodEl.setAttribute("open", "");
 }
-document.getElementById("open-method").addEventListener("click", openMethod);
-document.getElementById("open-method-2").addEventListener("click", openMethod);
+document.querySelectorAll(".open-method").forEach(function (b) {
+  b.addEventListener("click", openMethod);
+});
 
-document.getElementById("close-method").addEventListener("click", function () {
-  if (typeof methodEl.close === "function") methodEl.close();
-  else methodEl.removeAttribute("open");
+methodEl.querySelectorAll("[data-close]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    if (typeof methodEl.close === "function") methodEl.close();
+    else methodEl.removeAttribute("open");
+  });
 });
 
 methodEl.addEventListener("click", function (e) {
@@ -474,7 +573,7 @@ if (SpeechRecognitionImpl) {
       return;
     }
     recognition = new SpeechRecognitionImpl();
-    recognition.lang = "en-US";
+    recognition.lang = T("speech");
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognition.onresult = function (event) {
@@ -483,15 +582,54 @@ if (SpeechRecognitionImpl) {
     };
     recognition.onend = function () {
       recognition = null;
-      micBtn.textContent = "Mic";
+      micBtn.textContent = T("mic");
     };
     try {
       recognition.start();
-      micBtn.textContent = "Stop";
+      micBtn.textContent = T("stop");
     } catch (e) {
       recognition = null;
     }
   });
 }
 
+// ---------- Language: English or Hebrew, right to left (P106) ----------
+
+const langBtn = document.getElementById("lang-toggle");
+
+function applyLang(next) {
+  lang = next === "he" ? "he" : "en";
+  try {
+    localStorage.setItem("lang", lang);
+  } catch (e) {
+    // storage blocked: the choice lasts until the page is reloaded
+  }
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+  document.title = lang === "he" ? "סוכן השקעות בשדות תעופה" : "Airport Investment Agent";
+  langBtn.setAttribute("aria-label", T("otherLang")); // the flag and the name are in index.html
+  inputEl.placeholder = T("placeholder");
+  inputEl.setAttribute("aria-label", T("question"));
+  micBtn.title = T("speak");
+  micBtn.setAttribute("aria-label", T("speak"));
+  if (micBtn.textContent !== TEXT.en.stop && micBtn.textContent !== TEXT.he.stop) micBtn.textContent = T("mic");
+  showChatId();
+}
+
+langBtn.addEventListener("click", function () {
+  if (busy) return;
+  applyLang(lang === "he" ? "en" : "he");
+  // draw the chat again so its labels ("How I got this", ...) switch language too
+  messagesEl.replaceChildren();
+  updateWelcome();
+  reloadChat();
+});
+
+let savedLang = null;
+try {
+  savedLang = localStorage.getItem("lang");
+} catch (e) {
+  savedLang = null;
+}
+applyLang(savedLang === "he" ? "he" : "en");
 reloadChat();

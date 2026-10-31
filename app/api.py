@@ -87,7 +87,9 @@ def _internal_error(conversation_id, status=500):
 
 
 def _read_body(raw):
-    """(conversation_id, message) from the request body, or None if it is not one we accept.
+    """(conversation_id, message, language) from the request body, or None if it is not one we accept.
+
+    language is optional: "en" (the default) or "he" for the Hebrew page (P106).
 
     We check the body ourselves (not with FastAPI's model checks) so a bad body gets our
     own short reply, never FastAPI's detailed error text (P81).
@@ -104,7 +106,10 @@ def _read_body(raw):
         return None
     if conversation_id is not None and not isinstance(conversation_id, str):
         return None
-    return conversation_id, message
+    language = body.get("language", "en")
+    if language not in ("en", "he"):
+        return None
+    return conversation_id, message, language
 
 
 def create_app(settings, provider=None):
@@ -139,7 +144,7 @@ def create_app(settings, provider=None):
     # Runs each turn: one at a time per chat, with the time limit (P84, P85).
     runner = TurnRunner(store, provider, settings.airports_db)
 
-    def handle_chat(conversation_id, message):
+    def handle_chat(conversation_id, message, language="en"):
         """The checks of POST /chat in their fixed order, then the turn (P82)."""
         # 2. Question too long (exactly 1,000 characters is allowed).
         if len(message) > MAX_MESSAGE_CHARS:
@@ -155,7 +160,7 @@ def create_app(settings, provider=None):
             conversation_id = store.new_chat()
         # 6 and 7. The turn, unless the chat is still answering an earlier message.
         # TURN_TIMEOUT_SECONDS is read here, at request time, so tests can lower it (P85).
-        status, result = runner.run(conversation_id, message, TURN_TIMEOUT_SECONDS)
+        status, result = runner.run(conversation_id, message, TURN_TIMEOUT_SECONDS, language)
         if status == "busy":
             return _reply(conversation_id, refusal=refusal_dict("busy"))
         if status != "done":  # "crash" or "timeout"

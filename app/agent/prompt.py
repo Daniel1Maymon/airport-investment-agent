@@ -9,7 +9,8 @@ Used by:      app/agent/loop.py.
               tests: test_step14_agent_loop.py.
 Uses:         app/refusals.py (the exact "out_of_scope" sentence).
 Main parts:   SYSTEM_PROMPT - the system prompt text.
-Design:       docs/agent.md "Rules in the system prompt"; docs/implementation-plan.md P61, P62, P79, P103.
+              LANGUAGE_NOTES - an extra system line per page language (P106).
+Design:       docs/agent.md "Rules in the system prompt"; docs/implementation-plan.md P61, P62, P79, P103, P106.
 
 The 5 rules and the 6 "how to work" lines of P79 are copied word for word from
 docs/agent.md; tests check this (test_step14_agent_loop.py, test_fix_answer_quality.py).
@@ -47,3 +48,17 @@ How to work:
 - The "out of scope" message is exactly this sentence. For a question outside US airport investment, answer with this sentence alone, unchanged:
 {REFUSALS["out_of_scope"]}
 """
+
+# P106: the page can be read in Hebrew. Then this line is sent as a second system message
+# after SYSTEM_PROMPT, so the answer is in Hebrew even when the question is in English.
+# The out-of-scope sentence stays in English: the loop compares it word for word, and the
+# page shows its own Hebrew text for each refusal cause.
+LANGUAGE_NOTES = {
+    "he": (
+        "The user reads this page in Hebrew. Write your whole answer in Hebrew, also when the question is in English. "
+        "Keep airport codes (for example SFO), airport names, numbers and units as they are. "
+        "Write every other word in Hebrew, also level words (high = גבוה, middle = בינוני, low = נמוך), "
+        "size words and measure names (for example \"demand\" = ביקוש, \"strain\" = עומס, NAS delay = עיכובי מערכת התעופה). "
+        "For a question outside US airport investment, still answer with the English \"out of scope\" sentence alone, unchanged."
+    ),
+}

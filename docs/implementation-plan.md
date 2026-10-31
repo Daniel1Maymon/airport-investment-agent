@@ -277,6 +277,7 @@ The design docs didn't fix these details. They are written here so every session
 | P103 | Shorter, plainer answers | The prompt asks for at most about 250 words, the direct answer with its key number first, then at most 6 bullets; plain measure names instead of code names; no tables in the text (the page already shows the tool tables). Why: the first look at the chat page showed long answers that were hard to read. Approved 2026-10-31 (Step 17). |
 | P104 | Readable chat page | The answer text is at most about 70 characters per line with more line spacing and real heading sizes; tables the AI writes anyway (`| a | b |` lines) are drawn as real tables, still built from text nodes (P95 stays: never HTML); the tool tables sit under the answer in one closed box "Show the numbers (N tables)"; "How I got this" stays visible. Why: the first look showed a dense wall of text and raw `|---|` lines. Approved 2026-10-31 (Step 17). |
 | P105 | Welcome screen for a business reader | While the chat is empty, the page shows one question headline, one sentence on what the agent does, the score split as a sign (Demand 40%: two growth measures; Strain 60%: four crowding measures), and the four exam questions as one-click buttons. Data sources, the full method, the AI's role and the limits sit in a "How the score works" panel (header button), so the first screen stays short. A one-line note under the message box: decision support from public data, not investment advice. All text is static and matches docs/scoring.md and docs/data-sources.md. Why: the page is shown to people who do not know the project; they need the context without reading a wall of text. Approved 2026-10-31 (Step 17). |
+| P106 | Hebrew version, right to left | A flag button switches the page between English and Hebrew; the Hebrew page is mirrored (right to left) and remembers the choice. The page sends `"language": "he"` with each question, and the backend adds one system line asking for the whole answer in Hebrew, also for an English question; level words and measure names are in Hebrew too. The page shows refusal messages and the "How I got this" labels in Hebrew by their fixed key. Data tables, airport names and codes stay in English, left to right. A `language` other than "en" or "he" is a bad request (400). | The firm's readers may prefer Hebrew; one page language means no mixed-language answers. The out-of-scope sentence stays English inside the backend so the loop's word-for-word check still works. |
 
 ---
 
@@ -687,7 +688,7 @@ The design docs didn't fix these details. They are written here so every session
   6. the page works at phone width;
   7. voice input fills the message box (in a browser that supports it).
 - **Real-data check:** the four exam questions through the local backend.
-- **Details:** P92–P98, P103–P105.
+- **Details:** P92–P98, P103–P106.
 - **Design:** [api.md](api.md), [architecture.md](architecture.md) part 6.
 
 ### Step 18: Put it online
