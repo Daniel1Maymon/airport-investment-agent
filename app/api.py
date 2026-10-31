@@ -10,6 +10,8 @@ Why we need:  The chat page in the browser can't run Python. It sends the questi
               call us (CORS), and error replies that never show technical details.
 Used by:      a person or Railway starting the server:
                 uvicorn --factory app.api:main_app
+              Dockerfile (the start command of the online container, Step 18).
+              scripts/smoke_test.py (over HTTP only).
               tests: test_step16_api.py.
 Uses:         app/config.py (Settings), app/db.py (open_airport_db, for /health),
               app/store.py (ChatStore), app/agent/provider.py (OpenRouterProvider),

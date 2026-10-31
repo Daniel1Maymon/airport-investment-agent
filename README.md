@@ -9,8 +9,13 @@ like *"Which New England airports are strong candidates for terminal
 expansion?"* in a chat. The AI chooses tools and explains the results. It
 never writes SQL and never makes up a number.
 
-> **Status:** design complete, code not started. Everything below is the
-> design. The short design document for reviewers is [DESIGN.md](DESIGN.md).
+> **Try it live:** <https://airport-investment-agent.vercel.app>
+>
+> **Status:** built and online (Steps 0–18 of the
+> [implementation plan](docs/implementation-plan.md)). The chat page runs on
+> Vercel; the backend runs on Railway at
+> <https://backend-production-09fa.up.railway.app> (`GET /health`). The short
+> design document for reviewers is [DESIGN.md](DESIGN.md).
 
 ## The whole system in one picture
 
@@ -179,7 +184,74 @@ Details: [agent.md](docs/agent.md), Safety.
 
 ## Quick Start
 
-Coming with the first code layer.
+Needs Python 3.12. Run every command from the project folder.
+
+**1. Install**
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env        # then put your OpenRouter key in .env
+```
+
+**2. Build the airport database** (once; downloads go in `data/raw/`, see
+[data-sources.md](docs/data-sources.md))
+
+```bash
+.venv/bin/python -m loader.build --raw data/raw --out airports.duckdb
+```
+
+**3. Run the tests**
+
+```bash
+.venv/bin/python -m pytest              # fast tests: tiny dataset, no network, no AI
+.venv/bin/python -m pytest -m realdata  # checks against the real airports.duckdb
+```
+
+**4. Run it on your laptop**
+
+```bash
+set -a; source .env; set +a
+.venv/bin/python -m uvicorn --factory app.api:main_app --port 8000   # backend
+.venv/bin/python -m http.server 5500 --directory web                 # chat page
+```
+
+Open <http://localhost:5500> (not `127.0.0.1`: the backend allows only the
+exact address in `ALLOWED_ORIGIN`). For local runs, set `BACKEND_URL` at the
+top of `web/app.js` to `http://localhost:8000`.
+
+Other ways to ask questions:
+
+```bash
+.venv/bin/python -m app.agent.cli "What % of flights out of Anchorage are long-haul?"
+.venv/bin/python -m scripts.ask_questions          # the whole question list, saved to scripts/results/
+.venv/bin/python -m scripts.smoke_test http://localhost:8000   # health + one real answer + reload
+```
+
+## Online (Railway + Vercel)
+
+```
+ laptop ── scripts/deploy_backend.sh ──► Railway: container with app/ + airports.duckdb
+                                           disk at /data holds chat.sqlite (kept across deploys)
+ laptop ── vercel deploy --prod (web/) ──► Vercel: the chat page only
+```
+
+- **Backend:** `scripts/deploy_backend.sh` copies only five items
+  (`Dockerfile`, `railway.json`, `requirements.txt`, `app/`, `airports.duckdb`)
+  into a temporary folder and uploads that with `railway up`. The database is
+  not in git (it is 30 MB and built from downloads), and secrets such as `.env`
+  can never be uploaded.
+- **Railway settings:** `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`
+  (`deepseek/deepseek-v4.1-flash`), `ALLOWED_ORIGIN` (the exact Vercel
+  address). The Dockerfile sets `AIRPORTS_DB=/app/airports.duckdb` and
+  `CHAT_DB=/data/chat.sqlite`. Railway checks `GET /health` before switching
+  to a new version.
+- **Page:** `cd web && vercel deploy --prod`. `BACKEND_URL` in `web/app.js`
+  points to the Railway address.
+- **Check after a deploy:**
+  `.venv/bin/python -m scripts.smoke_test https://backend-production-09fa.up.railway.app`
+
+Details: [implementation plan](docs/implementation-plan.md) P117–P121.
 
 ## Docs
 
@@ -194,3 +266,4 @@ Coming with the first code layer.
 | [docs/schema.md](docs/schema.md) | Database tables |
 | [docs/scoring.md](docs/scoring.md) | The ranking formula |
 | [docs/data-sources.md](docs/data-sources.md) | Source URLs and tested download methods |
+| [docs/implementation-plan.md](docs/implementation-plan.md) | The build steps and every small decision made while building |
