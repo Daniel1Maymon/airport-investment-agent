@@ -17,6 +17,8 @@ never writes SQL and never makes up a number.
 > <https://backend-production-09fa.up.railway.app> (`GET /health`). The short
 > design document for reviewers is [DESIGN.md](DESIGN.md).
 
+[![The chat page: ask about any US airport](docs/images/chat-page.png)](https://airport-investment-agent.vercel.app)
+
 ## The whole system in one picture
 
 ```
