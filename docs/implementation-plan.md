@@ -240,7 +240,7 @@ The design docs didn't fix these details. They are written here so every session
 - **Sample files:** a test helper builds two small `.xlsx` files with openpyxl, using the real headers (`Rank, RO, ST, Locid, City, Airport Name, S/L, Hub, CY25, CY24, % Change`, and the `CY24, CY23` version). Include a summary row, an `IWA` row, a code with no translation, and one airport present in both files with different 2024 values.
 - **Tests (write first)** in `tests/test_step02_enplanements.py`:
   1. `test_one_file_gives_two_years`
-  2. `test_year_columns_found_by_label` (`CY25`/`CY24`, not by position)
+  2. `test_year_columns_found_by_label` (`CY 25 Enplanements`/`CY 24 Enplanements`, not by position)
   3. `test_two_files_cover_three_years`
   4. `test_newer_file_wins_on_overlap` (P7)
   5. `test_faa_code_translated` (`IWA` → `AZA`)
