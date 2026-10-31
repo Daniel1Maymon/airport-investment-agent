@@ -12,6 +12,7 @@ Main parts: the "Your chats" side panel (P109-P112); header (menu button on narr
 Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and method panel
             (static text, checked against docs/scoring.md). P106: Hebrew, right to left.
             P108: Deloitte colours. P109-P112: past chats in a side panel.
+            P113, P115: the "About the data" panel (why these years, COVID).
             P107: a calm chat layout (centred start screen, grey question bubbles, answers as
             plain text, one rounded message box). Readable at phone width (375 px): 16 px side
             margins, text wraps, wide tables scroll sideways inside their own box (P97).
@@ -176,8 +177,8 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
     .disclaimer { margin-top: 8px; margin-bottom: 12px; text-align: center; font-size: 12px; color: var(--faint); }
 
     /* ---------- "How the score works" panel ---------- */
-    dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 24px 80px rgba(15, 31, 53, 0.28); }
-    dialog#method::backdrop { background: rgba(15, 31, 53, 0.35); backdrop-filter: blur(3px); }
+    dialog.info { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 24px 80px rgba(15, 31, 53, 0.28); }
+    dialog.info::backdrop { background: rgba(15, 31, 53, 0.35); backdrop-filter: blur(3px); }
     .method-inner { padding: 30px 32px 26px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
     .method-inner h2 { font-size: 24px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 8px; }
     .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; }
@@ -192,6 +193,9 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
     html[lang="he"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; }
     html[lang="he"] #welcome h2, html[lang="he"] .method-inner h2 { letter-spacing: 0; }
     .lang-btn > span { display: inline-flex; align-items: center; gap: 7px; }
+    /* Header buttons look like buttons: a light border, white fill, a grey fill on hover */
+    .header-actions > button { border: 1px solid var(--line); background: var(--paper); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+    .header-actions > button:hover:not(:disabled) { background: var(--bubble); border-color: #cfd2d6; }
     .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 31, 53, 0.15); flex: none; }
 
     /* ---------- Chat history side panel (P109-P112) ---------- */
@@ -218,6 +222,7 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
     .chat-remove { flex: none; padding: 4px 9px; color: var(--faint); opacity: 0; font-size: 16px; line-height: 1; }
     #history-list li:hover .chat-remove, .chat-remove:focus-visible { opacity: 1; }
     .chat-remove:hover:not(:disabled) { color: var(--ink); }
+    #history-list { order: 1; } /* the "Your chats will show here" hint sits above the empty list */
     .history-empty { font-size: 13px; color: var(--faint); padding: 4px 8px; margin: 0; }
     #history-shade { display: none; position: fixed; inset: 0; z-index: 4; background: rgba(0, 0, 0, 0.3); }
     #menu { display: none; font-size: 18px; line-height: 1; padding: 6px 10px; }
@@ -264,6 +269,7 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
         <div class="header-actions">
           <button id="lang-toggle" type="button" class="lang-btn"><span data-lang="en" lang="he"><svg class="flag" viewBox="0 0 220 160" aria-hidden="true"><rect width="220" height="160" fill="#fff"/><rect y="15" width="220" height="25" fill="#0038b8"/><rect y="120" width="220" height="25" fill="#0038b8"/><g fill="none" stroke="#0038b8" stroke-width="5.5"><path d="M110 52 L136 97 L84 97 Z"/><path d="M110 108 L84 63 L136 63 Z"/></g></svg>עברית</span><span data-lang="he" lang="en"><svg class="flag" viewBox="0 0 190 100" aria-hidden="true"><rect width="190" height="100" fill="#b22234"/><g fill="#fff"><rect y="7.7" width="190" height="7.7"/><rect y="23.1" width="190" height="7.7"/><rect y="38.5" width="190" height="7.7"/><rect y="53.8" width="190" height="7.7"/><rect y="69.2" width="190" height="7.7"/><rect y="84.6" width="190" height="7.7"/></g><rect width="76" height="53.8" fill="#3c3b6e"/></svg>English</span></button>
           <button id="open-method" type="button" class="open-method"><span data-lang="en">How the score works</span><span data-lang="he">איך עובד הציון</span></button>
+          <button id="open-data" type="button" class="open-data"><span data-lang="en">About the data</span><span data-lang="he">על הנתונים</span></button>
           <button id="new-chat" type="button" class="secondary"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span data-lang="en">New chat</span><span data-lang="he">שיחה חדשה</span></button>
         </div>
         <div id="chat-id"></div>
@@ -318,7 +324,7 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
   </div>
 
 
-  <dialog id="method" aria-label="How the score works">
+  <dialog id="method" class="info" aria-label="How the score works">
     <div class="method-inner" data-lang="en">
       <button type="button" class="secondary method-close" data-close>Close</button>
       <h2 id="method-title">How the score works</h2>
@@ -413,6 +419,65 @@ Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and met
         <li>טריטוריות של ארה״ב (פוארטו ריקו, גואם ואחרות) לא נכללות.</li>
         <li>טבלאות הנתונים מוצגות באנגלית, כמו במקור.</li>
       </ul>
+    </div>
+  </dialog>
+  <!-- P113, P115: why these years, what each source covers, and what COVID means for the score -->
+  <dialog id="data-notes" class="info" aria-label="About the data">
+    <div class="method-inner" data-lang="en">
+      <button type="button" class="secondary method-close" data-close>Close</button>
+      <h2>About the data</h2>
+      <p>Every number comes from public US government data, loaded once into the app. The AI does not look numbers up on its own.</p>
+
+      <h3>Why these years</h3>
+      <ul>
+        <li><b>2025 is the main year.</b> It is the latest full year, and every answer is about it unless it says otherwise.</li>
+        <li><b>2019 is the "before" picture.</b> It is the last normal year before COVID, so 2025 against 2019 shows real long-term growth.</li>
+        <li><b>2020–2022 are left out on purpose.</b> Traffic fell during COVID and then came back. Growth from those years would show recovery, not new demand.</li>
+        <li><b>2024 shows the recent trend:</b> 2025 against 2024.</li>
+      </ul>
+
+      <h3>What each source covers</h3>
+      <ul>
+        <li>Flights, seats and passengers per route (US DOT, BTS T-100): 2019, 2024 and 2025.</li>
+        <li>Delays and taxi times (US DOT, BTS On-Time): January to December 2025.</li>
+        <li>Passenger boardings per airport (FAA): 2023–2025. Used for recent growth, and to leave out airports with fewer than 100,000 boardings in 2025.</li>
+        <li>Airport locations and runways (OurAirports).</li>
+      </ul>
+
+      <h3>What COVID means for the score</h3>
+      <ul>
+        <li>Airports that recovered slowly after COVID show weaker growth since 2019, even when they grow fast now. Recent growth (2025 against 2024) balances this.</li>
+        <li>Growth since 2019 is history, not a forecast.</li>
+      </ul>
+      <p>Each answer also lists its own data period, filters and assumptions under "About this data".</p>
+    </div>
+    <div class="method-inner" data-lang="he">
+      <button type="button" class="secondary method-close" data-close>סגירה</button>
+      <h2>על הנתונים</h2>
+      <p>כל מספר מגיע מנתונים ציבוריים של ממשלת ארה״ב, שנטענו פעם אחת לאפליקציה. ה־AI לא מחפש מספרים בעצמו.</p>
+
+      <h3>למה דווקא השנים האלה</h3>
+      <ul>
+        <li><b>2025 היא השנה העיקרית.</b> זו השנה המלאה האחרונה, וכל תשובה עוסקת בה אלא אם נאמר אחרת.</li>
+        <li><b>2019 היא תמונת ה״לפני״.</b> זו השנה הרגילה האחרונה לפני הקורונה, ולכן 2025 מול 2019 מראה צמיחה אמיתית לטווח ארוך.</li>
+        <li><b>2020–2022 הושמטו בכוונה.</b> התנועה ירדה בזמן הקורונה ואז חזרה. צמיחה מהשנים האלה הייתה מראה התאוששות, לא ביקוש חדש.</li>
+        <li><b>2024 מראה את המגמה האחרונה:</b> 2025 מול 2024.</li>
+      </ul>
+
+      <h3>מה כל מקור מכסה</h3>
+      <ul>
+        <li>טיסות, מושבים ונוסעים לכל קו (משרד התחבורה האמריקאי, BTS T-100): <bdi>2019, 2024, 2025</bdi>.</li>
+        <li>עיכובים וזמני הסעה (משרד התחבורה האמריקאי, BTS On-Time): ינואר עד דצמבר 2025.</li>
+        <li>עליות נוסעים לכל שדה (FAA): <bdi class="nw">2023–2025</bdi>. משמש לצמיחה האחרונה, ולהוצאת שדות עם פחות מ־100,000 עליות ב־2025.</li>
+        <li>מיקומי שדות ומסלולים (OurAirports).</li>
+      </ul>
+
+      <h3>מה הקורונה אומרת על הציון</h3>
+      <ul>
+        <li>שדות שהתאוששו לאט אחרי הקורונה מראים צמיחה חלשה יותר מאז 2019, גם כשהם צומחים מהר היום. הצמיחה האחרונה (2025 מול 2024) מאזנת את זה.</li>
+        <li>צמיחה מאז 2019 היא היסטוריה, לא תחזית.</li>
+      </ul>
+      <p>כל תשובה מפרטת גם את תקופת הנתונים, הסינונים וההנחות שלה תחת ״על הנתונים״.</p>
     </div>
   </dialog>
   <script src="app.js"></script>

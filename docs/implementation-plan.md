@@ -284,6 +284,9 @@ The design docs didn't fix these details. They are written here so every session
 | P110 | "Your chats" side panel | A panel on the start side (left in English, right in Hebrew) lists past chats, newest first. Clicking one loads it; the open chat is highlighted with a green bar. New chat clears the page and the list stays. | Works like common chat sites, so readers already know how to use it. |
 | P111 | On narrow screens the panel hides behind a menu button | Below 900 px wide the panel is hidden; a ☰ button in the header opens it over the page. A tap outside, the × button or Escape closes it. | A phone is too narrow for the panel and the chat side by side. |
 | P112 | Remove a chat from the list | A small × next to each chat removes it from this browser's list; the server keeps the chat. Removing the open chat shows the start page. | Keeps the list tidy without deleting data. |
+| P113 | "About the data" button and panel | A header button "About the data" (Hebrew: על הנתונים) opens a panel, like "How the score works": why these years (2025 main year; 2019 the last normal year before COVID; 2020–2022 left out on purpose; 2024 the recent trend), what each source covers, and what COVID means for the score. English and Hebrew. The header buttons now have a border and a white fill, so they look clickable. | A business reader should see why the years were chosen without asking. The reasons were only in decisions.md 7.1. |
+| P114 | COVID note in answers that use 2019 | `NOTE_COVID` (app/tools/rank.py) is added to the "about" assumptions when growth since 2019 is shown (rank by score or by growth_long, airport_profile) and for passenger, departure, seat and load-factor trends. Delay-only answers do not get it. Tests: tests/test_p114_covid_note.py. | The note travels with the numbers, so every answer that compares with 2019 carries the reason in its "About this data" box. |
+| P115 | An honest COVID limit | The "About the data" panel and NOTE_COVID say that airports that recovered slowly after COVID show weaker growth since 2019, even when they grow fast now; recent growth (2025 vs 2024) balances this. | This is a real bias in the long-term growth measure, so it is stated openly. |
 
 ---
 
@@ -694,7 +697,7 @@ The design docs didn't fix these details. They are written here so every session
   6. the page works at phone width;
   7. voice input fills the message box (in a browser that supports it).
 - **Real-data check:** the four exam questions through the local backend.
-- **Details:** P92–P98, P103–P112.
+- **Details:** P92–P98, P103–P115.
 - **Design:** [api.md](api.md), [architecture.md](architecture.md) part 6.
 
 ### Step 18: Put it online
