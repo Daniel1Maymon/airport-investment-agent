@@ -166,6 +166,8 @@ The design docs didn't fix these details. They are written here so every session
 | P8 | AI model | A setting (`OPENROUTER_MODEL`), not fixed in code. Chosen during Step 14. |
 | P9 | History too long | A fixed limit on the size of the history sent to the AI (a constant in `loop.py`); oldest whole turns are left out first. |
 | P10 | Python version and environment | Python 3.12 (stable, with ready-made DuckDB packages; the newest Pythons on this laptop may lack them). One shared `.venv` holding only the libraries, at exact versions. |
+| P11 | Units of measures | Shares, growth, load factor and `missing_seats_pct` are stored as **fractions** (0.823, not 82.3), the same unit as `target_load_factor=0.85`. Each `MEASURES` entry names its unit, so the chat page can show it as a percent. Approved 2026-10-31 (Step 6). |
+| P12 | Score rows in the measure list | `score`, `demand_score`, `strain_score` are listed in `MEASURES` (group "Score", calculated by Step 7) but `compute_measures` does not return them. Approved 2026-10-31 (Step 6). |
 
 ---
 
