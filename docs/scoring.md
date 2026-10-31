@@ -66,6 +66,7 @@ The weights are **settings**. A follow-up such as "what if growth matters more?"
 
 - **Size filter:** at least **100,000 enplanements in 2025**. Below that, a few new flights look like huge growth.
 - **Missing delay data:** On-Time data covers only airports served by the larger US airlines. If an airport has no delay data, S2 and S3 are skipped, the remaining weights are scaled up to total 100%, and the answer says "scored without delay data".
+- **Any other missing measure** (for example no runway data, or no 2019 traffic): the same rule. The measure is skipped, the other weights are scaled up, and the answer lists which measure was missing. No airport is dropped for a gap in its data.
 - **Flags:** plain-word notes next to the score, e.g. "planes over 85% full" or "NAS delays in the top 10% nationally", to help the agent explain.
 
 ## 5. Where the score lives
