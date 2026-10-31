@@ -37,7 +37,7 @@ const TEXT = {
     steps: "How I got this",
     about: "About this data",
     period: "Data period:", filters: "Filters:", missing: "Missing:", assumptions: "Assumptions:",
-    placeholder: "Ask about US airports… (Enter sends, Shift+Enter new line)",
+    placeholder: "Ask about any US airport",
     mic: "Mic", stop: "Stop", speak: "Speak your question", question: "Your question",
     otherLang: "עברית", speech: "en-US",
   },
@@ -50,7 +50,7 @@ const TEXT = {
     steps: "איך הגעתי לזה",
     about: "על הנתונים",
     period: "תקופת הנתונים:", filters: "סינונים:", missing: "חסר:", assumptions: "הנחות:",
-    placeholder: "שאלו על שדות תעופה בארה״ב… (Enter שולח, Shift+Enter שורה חדשה)",
+    placeholder: "שאלו על כל שדה תעופה בארה״ב",
     mic: "הקלטה", stop: "עצירה", speak: "הקלטת השאלה", question: "השאלה שלך",
     otherLang: "English", speech: "he-IL",
   },
@@ -378,7 +378,10 @@ function renderTable(t) {
 
 // P105: the welcome screen shows only while the chat is empty.
 function updateWelcome() {
-  welcomeEl.hidden = messagesEl.children.length > 0;
+  const empty = messagesEl.children.length === 0;
+  welcomeEl.hidden = !empty;
+  // P107: an empty chat centres the headline, the message box and the suggestions
+  document.body.classList.toggle("empty", empty);
 }
 
 function addQuestion(text) {
@@ -465,6 +468,7 @@ async function send() {
   if (!text.trim()) return;
   setBusy(true);
   inputEl.value = "";
+  fitInput();
   const turn = addQuestion(text);
   const working = el("div", "msg working", T("working"));
   turn.appendChild(working);
@@ -516,6 +520,13 @@ async function reloadChat() {
 
 sendBtn.addEventListener("click", send);
 
+// P107: the message box grows with its text, up to the CSS max-height.
+function fitInput() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = inputEl.scrollHeight + "px";
+}
+inputEl.addEventListener("input", fitInput);
+
 inputEl.addEventListener("keydown", function (e) {
   if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
     e.preventDefault(); // Enter never adds a new line; it sends only when not waiting
@@ -534,7 +545,7 @@ newChatBtn.addEventListener("click", function () {
 
 // ---------- Example questions and the "How the score works" panel (P105) ----------
 
-welcomeEl.querySelectorAll("button[data-q]").forEach(function (b) {
+document.querySelectorAll("button[data-q]").forEach(function (b) {
   b.addEventListener("click", function () {
     if (busy) return;
     inputEl.value = b.getAttribute("data-q");
@@ -606,7 +617,7 @@ function applyLang(next) {
   }
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
-  document.title = lang === "he" ? "סוכן השקעות בשדות תעופה" : "Airport Investment Agent";
+  document.title = lang === "he" ? "סוכן השקעות בשדות תעופה בארה״ב" : "US Airport Investment Agent";
   langBtn.setAttribute("aria-label", T("otherLang")); // the flag and the name are in index.html
   inputEl.placeholder = T("placeholder");
   inputEl.setAttribute("aria-label", T("question"));

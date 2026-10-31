@@ -1,307 +1,265 @@
 <!doctype html>
 <!--
-What:       The chat page of the Airport Investment Intelligence Agent (Step 17).
+What:       The chat page of the US Airport Investment Agent (Step 17).
 Why:        The exam asks for a chat interface. This page is the only thing the user sees:
             a message box, the answers, the tables and the "How I got this" list.
 Used by:    The browser. Served as plain files (locally on port 5500, online by Vercel).
 Uses:       app.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
-Main parts: header (title, chat ID, New chat), the message list, the message box with
-            the microphone button (only shown when the browser has speech recognition) and Send.
-Design:     Implementation plan P92-P98, P104, P105, P106 (Hebrew, right to left) (welcome screen and the
-            "How the score works" panel: static text, checked against docs/scoring.md). The styles below keep the page readable at phone
-            width (375 px): 16 px side margins, text wraps, and wide tables scroll sideways
-            inside their own box, never the whole page (P97).
+Main parts: header (name, language, "How the score works", New chat, chat ID); the welcome
+            headline; the message list; the message box (microphone only when the browser has
+            speech recognition, round Send button); the starter questions; the
+            "How the score works" panel.
+Design:     Implementation plan P92-P98, P104-P107. P105: welcome screen and method panel
+            (static text, checked against docs/scoring.md). P106: Hebrew, right to left.
+            P107: a calm chat layout (centred start screen, grey question bubbles, answers as
+            plain text, one rounded message box). Readable at phone width (375 px): 16 px side
+            margins, text wraps, wide tables scroll sideways inside their own box (P97).
 -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Airport Investment Agent</title>
+  <title>US Airport Investment Agent</title>
   <style>
     :root {
-      --bg: #f6f7f9; --card: #ffffff; --ink: #1d2733; --muted: #5f6b7a; --line: #e3e7ec;
-      --accent: #1f5fa8; --accent-soft: #e8f0fa; --warn-bg: #fff8e6; --warn-line: #f0d48a; --warn-ink: #6b4e00;
+      --ink: #1b1f24;        /* text */
+      --muted: #676f7a;      /* secondary text */
+      --faint: #9aa1ab;      /* hints */
+      --paper: #ffffff;      /* page */
+      --bubble: #f1f2f4;     /* question bubbles, chips on hover */
+      --line: #e4e6ea;       /* borders */
+      --navy: #0f1f35;       /* brand ink: send button, strain */
+      --sign: #f5b301;       /* brand yellow: demand, focus */
+      --warn-bg: #fff8e6; --warn-ink: #6b4e00;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      font-size: 16px; line-height: 1.6; color: var(--ink); background: var(--bg);
-      -webkit-font-smoothing: antialiased;
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased;
     }
-    .page { max-width: 820px; margin: 0 auto; padding: 0 16px; min-height: 100vh; display: flex; flex-direction: column; }
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .column { width: 100%; max-width: 760px; margin: 0 auto; padding: 0 16px; }
+    .nw { white-space: nowrap; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-    header {
-      position: sticky; top: 0; z-index: 2; background: var(--bg);
-      display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
-      padding: 18px 0 14px; border-bottom: 1px solid var(--line);
-    }
+    /* ---------- Buttons ---------- */
+    button { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; border-radius: 999px; border: 1px solid transparent; background: none; padding: 7px 12px; }
+    button:hover:not(:disabled) { background: var(--bubble); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.secondary { border-color: var(--line); }
+    button:focus-visible, summary:focus-visible, #message:focus-visible { outline: 3px solid rgba(245, 179, 1, 0.55); outline-offset: 2px; }
+
+    /* ---------- Header: slim, no border ---------- */
+    header { position: sticky; top: 0; z-index: 3; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    header .column { max-width: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 10px 16px; }
     .brand { flex: 1 1 auto; min-width: 0; }
-    header h1 { font-size: 20px; line-height: 1.3; margin: 0; letter-spacing: -0.01em; }
-    .tagline { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
-    #chat-id { font-size: 11px; color: #8a96a3; width: 100%; overflow-wrap: anywhere; order: 3; }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; display: flex; align-items: center; gap: 9px; }
+    header h1::before { content: ""; width: 20px; height: 20px; border-radius: 6px; flex: none; background: linear-gradient(135deg, var(--sign) 0 50%, var(--navy) 50% 100%); }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+    #chat-id { width: 100%; order: 3; font-size: 11px; color: var(--faint); overflow-wrap: anywhere; padding-inline-start: 29px; }
+    #chat-id:empty { display: none; }
 
-    button {
-      font: inherit; font-size: 15px; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
-      background: var(--accent); color: #fff; cursor: pointer;
+    /* ---------- Empty chat: everything centred, like a search page (P107) ---------- */
+    #welcome[hidden] { display: none; }
+    #welcome { text-align: center; padding-top: 40px; }
+    #welcome h2 { margin: 0 0 10px; font-size: clamp(26px, 4.4vw, 34px); font-weight: 650; line-height: 1.2; letter-spacing: -0.02em; }
+    .lead { margin: 0 auto 26px; max-width: 46ch; color: var(--muted); font-size: 16px; line-height: 1.55; }
+    body.empty main#messages { display: none; }
+    body.empty #welcome { margin-top: auto; }
+    body.empty #starter { margin-bottom: auto; }
+    body:not(.empty) #starter { display: none; }
+
+    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0 26px; }
+    .examples button {
+      text-align: start; border: 1px solid var(--line); border-radius: 16px; padding: 12px 16px;
+      font-size: 14.5px; font-weight: 400; line-height: 1.4; color: var(--ink);
     }
-    button.secondary { background: var(--card); color: var(--accent); border-color: #c5d3e3; }
-    button:hover:not(:disabled) { filter: brightness(1.08); }
-    button:disabled { background: #c9d3de; border-color: #c9d3de; color: #f3f5f8; cursor: not-allowed; }
+    .examples button:hover:not(:disabled) { background: var(--bubble); border-color: var(--bubble); }
 
-    #messages { flex: 1; padding: 20px 0 8px; min-width: 0; }
-    .turn { margin-bottom: 36px; }
+    /* The score split as one thin meter, in airfield-sign colours */
+    .score-meter { display: flex; height: 30px; border-radius: 999px; overflow: hidden; font-size: 13px; font-weight: 600; }
+    .score-meter span { display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+    .score-meter .demand { flex: 40; background: var(--sign); color: var(--navy); }
+    .score-meter .strain { flex: 60; background: var(--navy); color: #fff; }
+    .score-meter b { font-weight: 750; margin-inline-end: 6px; font-variant-numeric: tabular-nums; }
+    .more { margin: 10px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
+    button.inline { padding: 0; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; border-radius: 4px; }
+    button.inline:hover:not(:disabled) { background: none; color: var(--navy); }
+
+    /* ---------- Chat ---------- */
+    #messages { flex: 1; padding-top: 24px; padding-bottom: 8px; min-width: 0; }
+    .turn { margin-bottom: 40px; }
     .msg { overflow-wrap: anywhere; min-width: 0; }
     .user {
-      margin: 0 0 14px; margin-inline-start: auto; width: fit-content; max-width: 85%;
-      background: var(--accent); color: #fff; padding: 10px 16px; border-radius: 16px 16px 4px 16px;
-      white-space: pre-wrap;
+      width: fit-content; max-width: 78%; margin: 0 0 22px; margin-inline-start: auto;
+      background: var(--bubble); border-radius: 22px; padding: 10px 18px; white-space: pre-wrap;
     }
-    .bot {
-      background: var(--card); border: 1px solid var(--line); border-radius: 12px;
-      padding: 18px 22px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-    }
-    .bot-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-
-    /* The answer: short lines and clear spacing (P104) */
-    .answer { max-width: 68ch; font-size: 16.5px; }
+    .bot { padding: 0 2px; }
+    .bot-label { display: none; }
+    .answer { max-width: 70ch; margin-inline-end: auto; }
     .answer p { margin: 0 0 14px; }
     .answer h3 { font-size: 19px; line-height: 1.35; margin: 22px 0 8px; }
     .answer h4 { font-size: 16.5px; margin: 18px 0 6px; }
     .answer > :first-child { margin-top: 0; }
     .answer ul, .answer ol { margin: 0 0 14px; padding-inline-start: 22px; }
-    .answer li { margin: 0 0 6px; }
-    .answer li::marker { color: var(--muted); }
+    .answer li { margin: 0 0 7px; }
+    .answer li::marker { color: var(--faint); }
     .answer strong { font-weight: 650; }
     .answer .table-scroll { margin: 4px 0 16px; }
-
-    .working { color: var(--muted); font-style: italic; padding: 4px 2px; }
-    .refusal { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-ink); }
+    .working { color: var(--muted); padding: 2px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .working { animation: pulse 1.4s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.45; } }
+    }
+    .msg.refusal { background: var(--warn-bg); color: var(--warn-ink); border-radius: 16px; padding: 12px 16px; }
     .refusal p { margin: 0; }
 
     /* The tool tables, folded under the answer (P97, P104) */
-    details.numbers { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px; color: var(--ink); }
-    details.numbers > summary { color: var(--accent); font-weight: 600; }
+    details.numbers { margin-top: 6px; font-size: 14px; }
+    details.numbers > summary {
+      display: inline-block; list-style: none; border: 1px solid var(--line); border-radius: 999px;
+      padding: 5px 14px; font-weight: 500; color: var(--ink);
+    }
+    details.numbers > summary::-webkit-details-marker { display: none; }
+    details.numbers > summary::before { content: "▸"; display: inline-block; margin-inline-end: 7px; color: var(--muted); }
+    html[dir="rtl"] details.numbers > summary::before { content: "◂"; }
+    details.numbers[open] > summary::before { content: "▾"; }
+    details.numbers > summary:hover { background: var(--bubble); }
     summary { cursor: pointer; }
-    .table-block { margin: 16px 0 6px; }
+    .table-block { margin: 16px 0 6px; direction: ltr; text-align: left; } /* tool tables are English data (P106) */
     .table-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-    .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; }
+    .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; }
     table { border-collapse: collapse; font-size: 13.5px; width: 100%; line-height: 1.4; }
-    th, td { padding: 7px 10px; border-bottom: 1px solid #eef1f4; text-align: start; white-space: nowrap; }
-    th { background: #f3f5f8; font-weight: 600; color: #3b4754; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #eef0f3; text-align: start; white-space: nowrap; }
+    th { background: #f7f8f9; font-weight: 600; color: #3b4450; }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:nth-child(even) td { background: #fafbfc; }
     td.num { text-align: end; font-variant-numeric: tabular-nums; }
     .table-block details { font-size: 13px; margin-top: 6px; color: var(--muted); }
     .table-block details p { margin: 6px 0 2px; }
     .table-block details ul { margin: 0; padding-inline-start: 20px; }
 
-    .steps { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
-    .steps h4 { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #3b4754; }
-    .steps ul { margin: 0; padding-inline-start: 20px; }
+    .steps { margin-top: 14px; font-size: 13px; color: var(--muted); }
+    .steps h4 { margin: 0 0 2px; font-size: 13px; font-weight: 600; }
+    .steps ul { margin: 0; padding-inline-start: 18px; }
 
-    .composer {
-      position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 4px;
-      display: flex; gap: 8px; align-items: flex-end;
+    /* ---------- The message box: one rounded field, buttons inside (P107) ---------- */
+    .composer { position: sticky; bottom: 0; z-index: 2; background: linear-gradient(rgba(255, 255, 255, 0), var(--paper) 22px); padding-top: 18px; }
+    body.empty .composer { position: static; background: none; padding-top: 0; }
+    .composer-box {
+      display: flex; align-items: flex-end; gap: 6px; padding: 8px 8px 8px 20px;
+      border: 1px solid var(--line); border-radius: 28px; background: var(--paper);
+      box-shadow: 0 2px 6px rgba(15, 31, 53, 0.05), 0 10px 30px rgba(15, 31, 53, 0.07);
     }
+    html[dir="rtl"] .composer-box { padding: 8px 20px 8px 8px; }
+    .composer-box:focus-within { border-color: #d6d9de; }
     #message {
-      flex: 1; min-width: 0; font: inherit; padding: 11px 14px; border: 1px solid #c5d0db; background: var(--card);
-      border-radius: 10px; resize: vertical; min-height: 48px; max-height: 40vh;
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+      flex: 1; min-width: 0; border: none; outline: none; background: transparent; resize: none;
+      font: inherit; font-size: 16px; line-height: 1.5; padding: 8px 0; min-height: 40px; max-height: 40vh;
     }
-    #message:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    #message::placeholder { color: var(--faint); }
+    #mic { flex: none; height: 38px; }
     #mic[hidden] { display: none; }
-
-    @media (max-width: 480px) {
-      .bot { padding: 14px 14px; }
-      .answer { font-size: 16px; }
-      .user { max-width: 92%; }
+    #send {
+      flex: none; width: 38px; height: 38px; padding: 0; border-radius: 50%;
+      background: var(--navy); color: #fff; display: grid; place-items: center;
     }
+    #send:hover:not(:disabled) { background: #1d3557; }
+    #send svg { width: 18px; height: 18px; }
+    .disclaimer { margin-top: 8px; margin-bottom: 12px; text-align: center; font-size: 12px; color: var(--faint); }
 
-    /* ---------- Modern look, welcome screen and method panel (P105) ---------- */
-    :root { --navy: #0f1f35; --sign: #f5b301; --paper: #ffffff; --soft: #f4f6f9; --line: #e6e9ee; --accent: #0f1f35; }
-    body { background: var(--paper); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, Roboto, sans-serif; }
-    header, .composer { background: rgba(255, 255, 255, 0.92); backdrop-filter: saturate(1.4) blur(10px); }
-    header { border-bottom: 1px solid var(--line); padding: 14px 0; }
-    header h1 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; color: var(--navy); display: flex; align-items: center; gap: 10px; }
-    header h1::before { content: ""; width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--sign) 0 50%, var(--navy) 50% 100%); flex: none; }
-    .tagline { display: none; }
-    .header-actions { display: flex; gap: 8px; }
-    button { border-radius: 999px; font-weight: 550; padding: 8px 16px; font-size: 14.5px; }
-    button.secondary { background: var(--soft); border-color: var(--soft); color: var(--navy); }
-    button.secondary:hover:not(:disabled) { background: #e9edf2; filter: none; }
-    button.link { background: none; border: none; color: #4a5568; padding: 8px 10px; }
-    button.link:hover { color: var(--navy); filter: none; }
-    #send { background: var(--navy); border-color: var(--navy); }
-    button:focus-visible, summary:focus-visible { outline: 3px solid rgba(245, 179, 1, 0.6); outline-offset: 2px; }
-
-    #welcome { padding: 56px 0 16px; color: var(--navy); }
-    #welcome[hidden] { display: none; }
-    #welcome h2 { font-weight: 750; font-size: clamp(32px, 6vw, 48px); line-height: 1.05; letter-spacing: -0.035em; margin: 0 0 14px; max-width: 16ch; }
-    .lead { font-size: 18px; line-height: 1.55; max-width: 52ch; margin: 0 0 36px; color: #4a5568; }
-    .section-title { font-size: 13px; font-weight: 600; margin: 0 0 10px; color: #6b7685; }
-
-    /* The one bold element: the score split, in airfield-sign colours */
-    .score { display: grid; grid-template-columns: 40fr 60fr; gap: 6px; margin-bottom: 40px; }
-    .score > div { border-radius: 18px; padding: 20px 22px; }
-    .score .demand { background: var(--sign); color: var(--navy); }
-    .score .strain { background: var(--navy); color: #fff; }
-    .score .pct { font-size: 34px; font-weight: 750; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-    .score .strain .pct { color: var(--sign); }
-    .score .name { font-size: 16px; font-weight: 650; margin: 6px 0 12px; }
-    .score ul { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 1.45; }
-    .score li { margin-top: 5px; }
-    .score .demand li { color: rgba(15, 31, 53, 0.78); }
-    .score .strain li { color: rgba(255, 255, 255, 0.72); }
-
-    .examples { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
-    .examples button {
-      text-align: start; background: var(--soft); color: var(--navy); border: 1px solid transparent;
-      border-radius: 14px; padding: 16px 18px; font-size: 15px; font-weight: 500; line-height: 1.4;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .examples button:hover:not(:disabled) { background: #fff; border-color: #d5dbe3; filter: none; }
-
-    .more { font-size: 13.5px; color: #6b7685; margin: 0; }
-    button.link.inline { padding: 0; font-size: 13.5px; font-weight: 600; color: var(--navy); }
-    .disclaimer { font-size: 12px; color: #8a94a3; text-align: center; margin: 0 0 12px; }
-
-    /* Chat parts in the same style */
-    .user { background: var(--navy); border-radius: 18px; border-end-end-radius: 6px; }
-    .bot { border-radius: 18px; border-color: var(--line); box-shadow: none; }
-    .bot-label { text-transform: none; letter-spacing: 0; font-size: 13px; color: #6b7685; }
-    details.numbers > summary { color: var(--navy); }
-    #message { border-radius: 16px; border-color: #d5dbe3; background: var(--soft); box-shadow: none; }
-    #message:focus { background: #fff; outline: 3px solid rgba(245, 179, 1, 0.35); border-color: #c9a227; }
-
+    /* ---------- "How the score works" panel ---------- */
     dialog#method { max-width: 680px; width: calc(100% - 32px); border: none; border-radius: 20px; padding: 0; color: var(--ink); box-shadow: 0 24px 80px rgba(15, 31, 53, 0.28); }
-    dialog#method::backdrop { background: rgba(15, 31, 53, 0.4); backdrop-filter: blur(3px); }
+    dialog#method::backdrop { background: rgba(15, 31, 53, 0.35); backdrop-filter: blur(3px); }
     .method-inner { padding: 30px 32px 26px; max-height: 85vh; overflow-y: auto; line-height: 1.6; }
-    .method-inner h2 { font-size: 26px; font-weight: 750; letter-spacing: -0.025em; margin: 0 0 8px; color: var(--navy); }
-    .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; color: var(--navy); }
-    .method-inner p, .method-inner li { font-size: 15px; color: #3b4656; }
+    .method-inner h2 { font-size: 24px; font-weight: 650; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .method-inner h3 { font-size: 15.5px; margin: 24px 0 6px; }
+    .method-inner p, .method-inner li { font-size: 15px; color: #3b4450; }
     .method-inner ul { padding-inline-start: 20px; margin: 0; }
     .method-inner table { font-size: 14px; margin-top: 6px; }
     .method-inner td, .method-inner th { white-space: normal; }
-    .method-close { position: sticky; top: 0; float: inline-end; margin-block-start: -6px; margin-inline-end: -8px; }
+    .method-close { position: sticky; top: 0; float: inline-end; margin-block-start: -6px; margin-inline-end: -8px; background: var(--paper); }
 
-    @media (max-width: 600px) {
-      .examples, .score { grid-template-columns: 1fr; }
-      #welcome { padding-top: 32px; }
-      .method-inner { padding: 22px 18px; }
-    }
-    @media (prefers-reduced-motion: no-preference) {
-      #welcome { animation: rise 0.5s ease-out both; }
-      @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    }
     /* ---------- Hebrew, right to left (P106) ---------- */
     html:not([lang="he"]) [data-lang="he"], html[lang="he"] [data-lang="en"] { display: none !important; }
     html[lang="he"] body { font-family: -apple-system, BlinkMacSystemFont, "SF Hebrew", "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif; }
-    html[lang="he"] #welcome h2, html[lang="he"] .score .pct, html[lang="he"] .method-inner h2 { letter-spacing: 0; }
-    html[lang="he"] #welcome h2 { line-height: 1.15; max-width: 22ch; }
-    .answer { margin-inline-end: auto; } /* an English answer on a Hebrew page sits on the left, and the reverse */
-    .table-block { direction: ltr; text-align: left; } /* tool tables are English data */
-    #lang-toggle { font-weight: 600; }
+    html[lang="he"] #welcome h2, html[lang="he"] .method-inner h2 { letter-spacing: 0; }
     .lang-btn > span { display: inline-flex; align-items: center; gap: 7px; }
     .flag { width: 22px; height: 16px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(15, 31, 53, 0.15); flex: none; }
+
+    /* ---------- Phone width ---------- */
+    @media (max-width: 600px) {
+      .examples { grid-template-columns: 1fr; }
+      .examples button:nth-child(n+3) { display: none; } /* two suggestions are enough on a phone */
+      #welcome { padding-top: 24px; }
+      .user { max-width: 90%; }
+      .method-inner { padding: 22px 18px; }
+    }
   </style>
 </head>
-<body>
+<body class="empty">
   <div class="page">
     <header>
-      <div class="brand">
-        <h1><span data-lang="en">Airport Investment Agent</span><span data-lang="he">סוכן השקעות בשדות תעופה</span></h1>
-        <p class="tagline">Finds US airports where terminal expansion is most likely to pay off.</p>
+      <div class="column">
+        <div class="brand">
+          <h1><span data-lang="en">US Airport Investment Agent</span><span data-lang="he">סוכן השקעות בשדות תעופה בארה״ב</span></h1>
+        </div>
+        <div class="header-actions">
+          <button id="lang-toggle" type="button" class="lang-btn"><span data-lang="en" lang="he"><svg class="flag" viewBox="0 0 220 160" aria-hidden="true"><rect width="220" height="160" fill="#fff"/><rect y="15" width="220" height="25" fill="#0038b8"/><rect y="120" width="220" height="25" fill="#0038b8"/><g fill="none" stroke="#0038b8" stroke-width="5.5"><path d="M110 52 L136 97 L84 97 Z"/><path d="M110 108 L84 63 L136 63 Z"/></g></svg>עברית</span><span data-lang="he" lang="en"><svg class="flag" viewBox="0 0 190 100" aria-hidden="true"><rect width="190" height="100" fill="#b22234"/><g fill="#fff"><rect y="7.7" width="190" height="7.7"/><rect y="23.1" width="190" height="7.7"/><rect y="38.5" width="190" height="7.7"/><rect y="53.8" width="190" height="7.7"/><rect y="69.2" width="190" height="7.7"/><rect y="84.6" width="190" height="7.7"/></g><rect width="76" height="53.8" fill="#3c3b6e"/></svg>English</span></button>
+          <button id="open-method" type="button" class="open-method"><span data-lang="en">How the score works</span><span data-lang="he">איך עובד הציון</span></button>
+          <button id="new-chat" type="button" class="secondary"><span data-lang="en">New chat</span><span data-lang="he">שיחה חדשה</span></button>
+        </div>
+        <div id="chat-id"></div>
       </div>
-      <div class="header-actions">
-        <button id="lang-toggle" type="button" class="link lang-btn"><span data-lang="en" lang="he"><svg class="flag" viewBox="0 0 220 160" aria-hidden="true"><rect width="220" height="160" fill="#fff"/><rect y="15" width="220" height="25" fill="#0038b8"/><rect y="120" width="220" height="25" fill="#0038b8"/><g fill="none" stroke="#0038b8" stroke-width="5.5"><path d="M110 52 L136 97 L84 97 Z"/><path d="M110 108 L84 63 L136 63 Z"/></g></svg>עברית</span><span data-lang="he" lang="en"><svg class="flag" viewBox="0 0 190 100" aria-hidden="true"><rect width="190" height="100" fill="#b22234"/><g fill="#fff"><rect y="7.7" width="190" height="7.7"/><rect y="23.1" width="190" height="7.7"/><rect y="38.5" width="190" height="7.7"/><rect y="53.8" width="190" height="7.7"/><rect y="69.2" width="190" height="7.7"/><rect y="84.6" width="190" height="7.7"/></g><rect width="76" height="53.8" fill="#3c3b6e"/></svg>English</span></button>
-        <button id="open-method" type="button" class="link open-method"><span data-lang="en">How the score works</span><span data-lang="he">איך עובד הציון</span></button>
-        <button id="new-chat" type="button" class="secondary"><span data-lang="en">New chat</span><span data-lang="he">שיחה חדשה</span></button>
-      </div>
-      <div id="chat-id"></div>
     </header>
 
-    <section id="welcome" aria-labelledby="welcome-title">
+    <section id="welcome" class="column" aria-labelledby="welcome-title">
       <div data-lang="en">
-      <h2 id="welcome-title">Which US airports are worth expanding?</h2>
-      <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
-
-      <p class="section-title">How airports are scored</p>
-      <div class="score" role="group" aria-label="How the score is split">
-        <div class="demand">
-          <div class="pct">40%</div>
-          <div class="name">Demand</div>
-          <ul>
-            <li>Passenger growth since 2019</li>
-            <li>Passenger growth in the last year</li>
-          </ul>
-        </div>
-        <div class="strain">
-          <div class="pct">60%</div>
-          <div class="name">Strain</div>
-          <ul>
-            <li>How full the planes are</li>
-            <li>Delays from a busy airport or airspace</li>
-            <li>Time from gate to takeoff</li>
-            <li>Flights per runway</li>
-          </ul>
-        </div>
-      </div>
-
-      <p class="section-title">Start with a question</p>
-      <div class="examples">
-        <button type="button" data-q="Which New England airports are strong candidates for terminal expansion?">Which New England airports are strong candidates for terminal expansion?</button>
-        <button type="button" data-q="Compare congestion at LA (LAX) and Santa Ana (SNA).">Compare congestion at LAX and Santa Ana (SNA).</button>
-        <button type="button" data-q="What % of flights out of Anchorage are long-haul?">What share of flights out of Anchorage are long-haul?</button>
-        <button type="button" data-q="What is the unmet flight demand at SFO, and why?">What is the unmet flight demand at SFO, and why?</button>
-      </div>
-
-      <p class="more">Data: US Department of Transportation and FAA, 2019–2025. <button type="button" class="link inline open-method">Sources, method and limits</button></p>
+        <h2 id="welcome-title">Which US airports are worth expanding?</h2>
+        <p class="lead">Ask about any of 679 US airports. Each answer ranks airports on growth and crowding, and shows the numbers behind it.</p>
       </div>
       <div data-lang="he">
-      <h2>באילו שדות תעופה בארה״ב כדאי להשקיע בהרחבה?</h2>
-      <p class="lead">שאלו על כל אחד מ־679 שדות התעופה בארה״ב. כל תשובה מדרגת את השדות לפי צמיחה ועומס, ומציגה את המספרים שמאחוריה.</p>
-
-      <p class="section-title">איך מחושב הציון</p>
-      <div class="score" role="group" aria-label="חלוקת הציון">
-        <div class="demand">
-          <div class="pct">40%</div>
-          <div class="name">ביקוש</div>
-          <ul>
-            <li>גידול בנוסעים מאז 2019</li>
-            <li>גידול בנוסעים בשנה האחרונה</li>
-          </ul>
-        </div>
-        <div class="strain">
-          <div class="pct">60%</div>
-          <div class="name">עומס</div>
-          <ul>
-            <li>כמה מלאים המטוסים</li>
-            <li>עיכובים בגלל שדה או מרחב אווירי עמוסים</li>
-            <li>זמן מהשער ועד ההמראה</li>
-            <li>טיסות לכל מסלול</li>
-          </ul>
-        </div>
-      </div>
-
-      <p class="section-title">התחילו עם שאלה</p>
-      <div class="examples">
-        <button type="button" data-q="אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?">אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?</button>
-        <button type="button" data-q="השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).">השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).</button>
-        <button type="button" data-q="איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?">איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?</button>
-        <button type="button" data-q="מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?">מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?</button>
-      </div>
-      <p class="more">נתונים: משרד התחבורה האמריקאי ו־FAA, ‏2019–2025. <button type="button" class="link inline open-method">מקורות, שיטה ומגבלות</button></p>
+        <h2>באילו שדות תעופה בארה״ב כדאי להשקיע בהרחבה?</h2>
+        <p class="lead">שאלו על כל אחד מ־679 שדות התעופה בארה״ב. כל תשובה מדרגת את השדות לפי צמיחה ועומס, ומציגה את המספרים שמאחוריה.</p>
       </div>
     </section>
-    <main id="messages" aria-live="polite"></main>
-    <div class="composer">
-      <textarea id="message" rows="2" placeholder="Ask about US airports… (Enter sends, Shift+Enter new line)" aria-label="Your question"></textarea>
-      <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
-      <button id="send" type="button"><span data-lang="en">Send</span><span data-lang="he">שליחה</span></button>
+
+    <main id="messages" class="column" aria-live="polite"></main>
+
+    <div class="composer column">
+      <div class="composer-box">
+        <textarea id="message" rows="1" placeholder="Ask about any US airport" aria-label="Your question"></textarea>
+        <button id="mic" type="button" class="secondary" title="Speak your question" aria-label="Speak your question" hidden>Mic</button>
+        <button id="send" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="sr-only" data-lang="en">Send</span><span class="sr-only" data-lang="he">שליחה</span></button>
+      </div>
     </div>
-    <p class="disclaimer"><span data-lang="en">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</span><span data-lang="he">כלי לתמיכה בהחלטות מנתונים ציבוריים, לא ייעוץ השקעות. ה־AI מסביר; כללים קבועים מחשבים כל מספר.</span></p>
+
+    <section id="starter" class="column" aria-label="Starter questions">
+      <div data-lang="en">
+        <div class="examples">
+          <button type="button" data-q="Which New England airports are strong candidates for terminal expansion?">Which New England airports are strong candidates for terminal expansion?</button>
+          <button type="button" data-q="Compare congestion at LA (LAX) and Santa Ana (SNA).">Compare congestion at LAX and Santa Ana (SNA).</button>
+          <button type="button" data-q="What % of flights out of Anchorage are long-haul?">What share of flights out of Anchorage are long-haul?</button>
+          <button type="button" data-q="What is the unmet flight demand at SFO, and why?">What is the unmet flight demand at SFO, and why?</button>
+        </div>
+        <div class="score-meter" role="img" aria-label="Score: demand 40%, strain 60%"><span class="demand"><b>40%</b>Demand</span><span class="strain"><b>60%</b>Strain</span></div>
+        <p class="more">Demand is passenger growth; strain is full planes, delays, taxi time and flights per runway. Data: US DOT and FAA, <span class="nw">2019–2025</span>. <button type="button" class="inline open-method">How the score works</button></p>
+      </div>
+      <div data-lang="he">
+        <div class="examples">
+          <button type="button" data-q="אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?">אילו שדות תעופה בניו אינגלנד הם מועמדים טובים להרחבת טרמינל?</button>
+          <button type="button" data-q="השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).">השווה את העומס בלוס אנג׳לס (LAX) ובסנטה אנה (SNA).</button>
+          <button type="button" data-q="איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?">איזה אחוז מהטיסות שיוצאות מאנקורג׳ הן טיסות ארוכות?</button>
+          <button type="button" data-q="מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?">מה הביקוש הלא מסופק לטיסות בסן פרנסיסקו (SFO), ולמה?</button>
+        </div>
+        <div class="score-meter" role="img" aria-label="ציון: ביקוש 40%, עומס 60%"><span class="demand"><b>40%</b>ביקוש</span><span class="strain"><b>60%</b>עומס</span></div>
+        <p class="more">ביקוש הוא צמיחה בנוסעים; עומס הוא מטוסים מלאים, עיכובים, זמן הסעה וטיסות לכל מסלול. נתונים: משרד התחבורה האמריקאי ו־FAA, <bdi class="nw">2019–2025</bdi>. <button type="button" class="inline open-method">איך עובד הציון</button></p>
+      </div>
+    </section>
+
+    <p class="disclaimer column"><span data-lang="en">Decision support from public data, not investment advice. The AI explains; fixed rules compute every number.</span><span data-lang="he">כלי לתמיכה בהחלטות מנתונים ציבוריים, לא ייעוץ השקעות. ה־AI מסביר; כללים קבועים מחשבים כל מספר.</span></p>
   </div>
+
 
   <dialog id="method" aria-label="How the score works">
     <div class="method-inner" data-lang="en">
