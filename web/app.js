@@ -534,14 +534,17 @@ inputEl.addEventListener("keydown", function (e) {
   }
 });
 
-newChatBtn.addEventListener("click", function () {
+// The New chat button and the app name both go back to the start page.
+function startNewChat() {
   if (busy) return;
   clearChatId();
   messagesEl.replaceChildren();
   updateWelcome();
   window.scrollTo(0, 0);
   inputEl.focus();
-});
+}
+newChatBtn.addEventListener("click", startNewChat);
+document.getElementById("home").addEventListener("click", startNewChat);
 
 // ---------- Example questions and the "How the score works" panel (P105) ----------
 
