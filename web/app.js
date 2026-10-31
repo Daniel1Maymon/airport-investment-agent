@@ -17,6 +17,8 @@ Design:     Implementation plan P92-P98.
                  paragraph), built from page elements one by one.
             P96: numbers are formatted by their unit. P97: each table scrolls sideways in its
                  own box, then a closed "About this data" box.
+            P104: tables the AI writes in its answer become real tables (still text nodes);
+                 the tool tables sit in one closed "Show the numbers" box under the answer.
             P98: the reply is read on any HTTP status; only a failed request shows
                  "Could not reach the server. Try again.".
 */
@@ -113,8 +115,9 @@ function isNumberCell(value, unit) {
 // ---------- The answer: plain text with a small safe markdown set (P95) ----------
 
 // Adds text to `parent`, turning **bold** into <strong>. Unpaired ** stay as written.
+// Backticks around a word (`code`) are dropped: the reader needs the word, not the marks.
 function addInline(parent, text) {
-  const parts = text.split("**");
+  const parts = text.replace(/`([^`]*)`/g, "$1").split("**");
   if (parts.length % 2 === 0) {
     // odd number of "**": the last one has no partner, keep it as written
     const last = parts.pop();
@@ -127,30 +130,87 @@ function addInline(parent, text) {
   });
 }
 
+// A markdown table the AI wrote anyway (P104): "| a | b |" lines become a real table,
+// built from text nodes like everything else. The "|---|" line is skipped.
+function isTableLine(line) {
+  return /^\s*\|.*\|\s*$/.test(line);
+}
+
+function isDividerLine(line) {
+  return /^\s*\|?(\s*:?-{2,}:?\s*\|)+\s*(:?-{2,}:?\s*)?$/.test(line);
+}
+
+function tableCells(line) {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) {
+    return c.trim();
+  });
+}
+
+function renderAnswerTable(lines) {
+  const rows = lines.filter(function (l) {
+    return !isDividerLine(l);
+  }).map(tableCells);
+  const table = el("table");
+  if (rows.length) {
+    const headRow = el("tr");
+    rows[0].forEach(function (c) {
+      const th = el("th");
+      addInline(th, c);
+      headRow.appendChild(th);
+    });
+    table.appendChild(el("thead")).appendChild(headRow);
+  }
+  const body = el("tbody");
+  rows.slice(1).forEach(function (r) {
+    const tr = el("tr");
+    r.forEach(function (c) {
+      const td = el("td", /^[-+$]?[\d.,]+%?$/.test(c) ? "num" : null);
+      addInline(td, c);
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+  const scroll = el("div", "table-scroll");
+  scroll.appendChild(table);
+  return scroll;
+}
+
 function renderAnswer(text) {
-  const box = document.createDocumentFragment();
+  const box = el("div", "answer");
+  const lines = text.split(/\r?\n/);
   let para = null;
   let list = null;
-  text.split(/\r?\n/).forEach(function (line) {
+  for (let n = 0; n < lines.length; n++) {
+    const line = lines[n];
     const heading = line.match(/^\s*(#{1,6})\s+(.*)$/);
-    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
-    if (!line.trim()) {
+    const bullet = line.match(/^\s*[-*\u2022]\s+(.*)$/);
+    const numbered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (!line.trim() || /^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      para = null; // a blank line or a "---" rule ends the paragraph or list
+      list = null;
+    } else if (isTableLine(line)) {
       para = null;
       list = null;
+      const block = [];
+      while (n < lines.length && isTableLine(lines[n])) block.push(lines[n++]);
+      n--;
+      box.appendChild(renderAnswerTable(block));
     } else if (heading) {
       para = null;
       list = null;
-      const h = el(heading[1].length === 1 ? "h3" : "h4");
-      addInline(h, heading[2]);
+      const h = el(heading[1].length <= 2 ? "h3" : "h4");
+      addInline(h, heading[2].replace(/\s*#+\s*$/, ""));
       box.appendChild(h);
-    } else if (bullet) {
+    } else if (bullet || numbered) {
       para = null;
-      if (!list) {
-        list = el("ul");
+      const tag = bullet ? "ul" : "ol";
+      if (!list || list.tagName.toLowerCase() !== tag) {
+        list = el(tag);
         box.appendChild(list);
       }
       const li = el("li");
-      addInline(li, bullet[1]);
+      addInline(li, (bullet || numbered)[1]);
       list.appendChild(li);
     } else {
       list = null;
@@ -162,7 +222,7 @@ function renderAnswer(text) {
       }
       addInline(para, line);
     }
-  });
+  }
   return box;
 }
 
@@ -233,15 +293,25 @@ function addQuestion(text) {
 
 function addReply(turn, reply) {
   const bot = el("div", "msg bot");
+  bot.appendChild(el("div", "bot-label", "Agent"));
   if (reply.refusal && reply.refusal.message) {
     bot.classList.add("refusal");
     bot.appendChild(el("p", null, reply.refusal.message));
   } else if (reply.answer) {
     bot.appendChild(renderAnswer(String(reply.answer)));
   }
-  (reply.tables || []).forEach(function (t) {
-    bot.appendChild(renderTable(t));
-  });
+  const tables = reply.tables || [];
+  if (tables.length) {
+    // P104: the numbers sit under the answer in one closed box, so the answer is read first
+    const numbers = el("details", "numbers");
+    numbers.appendChild(
+      el("summary", null, "Show the numbers (" + tables.length + (tables.length === 1 ? " table)" : " tables)"))
+    );
+    tables.forEach(function (t) {
+      numbers.appendChild(renderTable(t));
+    });
+    bot.appendChild(numbers);
+  }
   const steps = reply.steps || [];
   if (steps.length) {
     const box = el("div", "steps");

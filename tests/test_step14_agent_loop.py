@@ -558,12 +558,12 @@ def _plan_row(decision):
     raise AssertionError(f"{decision} row not found in implementation-plan.md")
 
 
-def test_system_prompt_asks_for_800_words():
+def test_system_prompt_asks_for_answer_length():
     # P61: the length is asked for in the prompt; the sentence is read from the plan's P61 row.
     match = re.search(r'the system prompt also says "([^"]+)"', _plan_row("P61"))
     assert match, "P61 row does not quote the prompt sentence"
     sentence = match.group(1)
-    assert sentence == "Keep each answer to at most about 800 words."  # the plan still says this
+    assert sentence == "Keep each answer short, at most about 250 words: start with the direct answer and its key number in one or two sentences, then at most 6 short bullets."  # P103 changed the length
     assert sentence in SYSTEM_PROMPT
 
 
