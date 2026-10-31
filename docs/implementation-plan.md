@@ -179,6 +179,7 @@ The design docs didn't fix these details. They are written here so every session
 | P21 | Order, rank, size filter | Kept: `enplanements` is not `None` and ≥ `min_enplanements`. Sorted by `final_score` high to low, ties by IATA code A→Z; `rank` = 1, 2, 3 … in that order. |
 | P22 | No final score | With custom weights an airport may have no value for any weighted measure (e.g. `{"D1": 100}` and no 2019 traffic). Its `final_score` is `None` (as P18 for the halves) and it is placed last, still ordered by IATA code. Approved 2026-10-31 (Step 7). |
 | P23 | Refusal keys | The refusal table in agent.md has a **Key** column (`no_data`, `airport_not_found`, `chat_not_found`, `out_of_scope`, `ai_unavailable`, `too_many_steps`, `question_too_long`, `busy`, `internal_error`). `REFUSALS` uses exactly these keys; Steps 14 and 16 pick a message by its key. Approved 2026-10-31 (Step 8). |
+| P24 | Tool setting checks | `about` always has its four keys (empty `""`/`[]` when not given). Errors: unknown tool → `allowed` = tool names; number out of range → `allowed` = `[min, max]`; too many airports → `[1, 5]`; unknown state → the 51 codes; unknown measure → `MEASURES` names; unknown setting name → the tool's setting names. `US_STATES` is a fixed list in code (50 states + DC); `"ca"` is accepted as `"CA"`. Tool specs use the OpenAI function format OpenRouter takes. A tool's own crash is not caught by `run_tool` (Step 16 turns it into "internal error"). The shared setting types also work when wrapped as optional (`StateList \| None = None`): the error still lists the allowed values. Approved 2026-10-31 (Step 8). |
 
 ---
 
@@ -387,7 +388,7 @@ The design docs didn't fix these details. They are written here so every session
 - **Needs:** 0 (tested on the tiny dataset).
 - **Builds:** the tool result format (`data` + `about`), the tool list (registry), setting checks with pydantic (at most 25 rows, 5 airports, known states, known measures) with errors that list the allowed values, `run_tool` (the only way the agent calls a tool), the tool descriptions sent to the AI, and the fixed refusal messages.
 - **Interface:**
-  - `app/tools/base.py`: `ToolResult(data, about)` with `.to_dict()`; `register(name, description, settings_model)` as a decorator; `run_tool(con, name, settings: dict) -> dict` returns the result, or `{"error": ..., "allowed": [...]}` and never raises for a bad setting; `tool_specs_for_ai() -> list[dict]`.
+  - `app/tools/base.py`: `ToolResult(data, about)` with `.to_dict()`; `register(name, description, settings_model)` as a decorator; `run_tool(con, name, settings: dict) -> dict` returns the result, or `{"error": ..., "allowed": [...]}` and never raises for a bad setting; `tool_specs_for_ai() -> list[dict]`; `TOOLS` (the registry: name → `Tool(name, description, settings_model, fn)`); shared setting types for later tools `TopN`, `AirportList`, `StateList`, `MeasureName`, the `Allowed` marker and `US_STATES` (P24).
   - `app/refusals.py`: `REFUSALS: dict[cause, message]`, one entry per cause in agent.md; `Refusal(cause, message)`.
 - **Tests (write first)** in `tests/test_step08_tool_base.py`, using a small test-only tool:
   1. `test_result_has_data_and_about` (`about` has `data_period`, `filters`, `missing`, `assumptions`)

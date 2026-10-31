@@ -6,7 +6,7 @@ setting or an unknown tool gives the AI an error that lists the allowed values,
 so it can correct itself, and nothing runs.
 """
 
-from typing import Annotated, Literal, NamedTuple
+from typing import Annotated, Literal, NamedTuple, get_args, get_origin
 
 from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 
@@ -95,7 +95,12 @@ def _setting_error(model, error):
     """Turn the first pydantic error into a plain-English error with allowed values."""
     setting = str(error["loc"][0]) if error["loc"] else "settings"
     field = model.model_fields.get(setting)
-    markers = [m for m in (field.metadata if field else []) if isinstance(m, Allowed)]
+    metadata = list(field.metadata) if field else []
+    # For an optional setting (`StateList | None`), the marker sits inside the union's Annotated member.
+    for member in get_args(field.annotation) if field else ():
+        if get_origin(member) is Annotated:
+            metadata.extend(get_args(member)[1:])
+    markers = [m for m in metadata if isinstance(m, Allowed)]
     allowed = markers[0].values if markers else []
     if error["type"] == "literal_error":
         reason = "this value is not one of the allowed values"

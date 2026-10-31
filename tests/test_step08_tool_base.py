@@ -387,3 +387,65 @@ def test_shared_types_are_exported():
     # Later tools import these from app.tools.base.
     for name in ("TopN", "AirportList", "StateList", "MeasureName", "US_STATES"):
         assert hasattr(base, name), name
+
+
+# ---- optional settings (P24) -------------------------------------------------
+# Later tools declare settings that may be left out, e.g. `states: StateList | None = None`.
+# A bad value must still give an error that lists the allowed values.
+
+OPTIONAL_TEST_TOOL = "optional_test_tool"
+
+
+class _OptionalSettings(BaseModel):
+    """Settings of a second test-only tool: each shared type wrapped as optional."""
+
+    top_n: TopN | None = None
+    airports: AirportList | None = None
+    states: StateList | None = None
+    measure: MeasureName | None = None
+
+
+@pytest.fixture
+def optional_tool():
+    """Register the optional-settings test tool; restore TOOLS exactly afterwards.
+
+    Yields a dict whose "calls" counts how many times the tool really ran.
+    """
+    saved = dict(TOOLS)
+    state = {"calls": 0, "settings": None}
+
+    @register(OPTIONAL_TEST_TOOL, "Echoes its optional settings (test only).", _OptionalSettings)
+    def _optional_test_tool(con, settings):
+        state["calls"] += 1
+        state["settings"] = settings
+        return ToolResult(data={"ran": True})
+
+    yield state
+    TOOLS.clear()
+    TOOLS.update(saved)
+
+
+def test_optional_setting_error_lists_allowed(tiny_db, optional_tool):
+    six = ["BOS", "MHT", "BTV", "BHB", "LAX", "SNA"]
+    cases = [
+        ({"states": ["XX"]}, ALL_51_CODES),
+        ({"top_n": 26}, [1, 25]),
+        ({"airports": six}, [1, 5]),
+        ({"measure": "happiness"}, sorted(MEASURES)),
+    ]
+    for settings, expected in cases:
+        result = run_tool(tiny_db, OPTIONAL_TEST_TOOL, settings)
+        assert _is_error(result), settings
+        assert result["allowed"] == expected, settings
+    assert optional_tool["calls"] == 0
+
+
+def test_optional_setting_can_be_left_out(tiny_db, optional_tool):
+    result = run_tool(tiny_db, OPTIONAL_TEST_TOOL, {})
+    assert result["data"] == {"ran": True}
+    assert optional_tool["calls"] == 1
+    got = optional_tool["settings"]
+    assert got.top_n is None
+    assert got.airports is None
+    assert got.states is None
+    assert got.measure is None
