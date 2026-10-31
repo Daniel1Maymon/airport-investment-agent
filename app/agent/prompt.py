@@ -16,6 +16,10 @@ The 5 rules are copied word for word from docs/agent.md; a test checks this.
 
 from app.refusals import REFUSALS
 
+# This text is sent first on every AI call, before the chat history. It has three parts:
+# the job (one sentence), the 5 rules, and practical notes on how to work.
+# The out-of-scope sentence is inserted from app/refusals.py, so the AI's refusal and the
+# loop's check (in loop.py) always use the same words.
 SYSTEM_PROMPT = f"""You help a US airport-modernization investment firm find airports where renovation will pay off, based on growth in flights and passengers and on signs of strain.
 
 Rules:
