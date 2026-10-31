@@ -307,6 +307,8 @@ The design docs didn't fix these details. They are written here so every session
   3. `test_failed_loader_leaves_no_file` (an error stops the build and no half-built database is left)
   4. `test_existing_raw_files_not_downloaded_again`
 - **Real-data check:** the full build on an empty folder ends with no failed checks; the result opens read-only.
+  - **Done 2026-10-31 on the existing downloads in `data/raw`, not an empty folder** (user's decision). The build found all 20 raw files, downloaded nothing, and passed its checks in about 11 seconds: airports 679, enplanements 1,503, route_traffic 1,608,927, airport_delays 7,898; the file opens read-only. It warned about 16 FAA codes with no IATA code (15 in US territories, which are out of scope, and Kake, AK, `AFE`).
+  - **Why the empty-folder download was skipped:** it would download about 340 MB again (15–40 minutes) and add nothing about our code. The download functions were already used in Steps 1–4 to fetch these files. Finding all 20 files without downloading proves the build expects the same file names the downloads write. The "download only what's missing" logic is covered by unit tests with fake downloads. An empty-folder run would only show that the BTS and FAA websites still work that day; if they change, the loader stops with a clear error.
 - **Design:** [architecture.md](architecture.md) part 1, [schema.md](schema.md) `data_sources`.
 
 ### Step 6: The shared measure list

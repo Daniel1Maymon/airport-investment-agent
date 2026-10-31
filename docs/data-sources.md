@@ -4,6 +4,19 @@ Every method here was tested by real download on 2026-10-30. Why each source was
 
 Downloaded files are untrusted: keep them in their own directory and run any Python that reads them with `python3 -I`.
 
+## Where the raw files go
+
+`python -m loader.build --raw data/raw --out airports.duckdb` (Step 5) expects these files, the same names the download functions write. It downloads only the ones that are missing.
+
+| Folder | Files |
+|---|---|
+| `data/raw/ourairports/` | `airports.csv`, `runways.csv` |
+| `data/raw/faa/` | `arp-cy2024-commercial-service-enplanements.xlsx`, `arp-cy2025-…` |
+| `data/raw/t100/` | `t100_2019.zip`, `t100_2024.zip`, `t100_2025.zip` |
+| `data/raw/ontime/` | `ontime_2025_1.zip` … `ontime_2025_12.zip` (month without a leading zero) |
+
+The years and months are constants at the top of `loader/build.py` (`FAA_YEARS`, `T100_YEARS`, `ONTIME_YEAR`, `ONTIME_MONTHS`). After loading, the build checks that each of the four tables has at least one row; an empty table stops it, and no database file is written.
+
 ## A. OurAirports: airports and runways
 
 - `https://davidmegginson.github.io/ourairports-data/airports.csv`
