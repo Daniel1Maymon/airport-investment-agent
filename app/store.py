@@ -4,8 +4,9 @@ What it is:   The `ChatStore` class: starts a chat, saves one step of a chat (a 
               a tool request, a tool result or an answer) and loads all steps in order.
 Why we need:  The browser keeps only the chat ID; the server keeps the history, so a
               follow-up question sees the earlier steps, even after a restart.
-Used by:      tests: test_step13_store.py.
-              Planned: Step 14 agent loop, Step 16 backend API.
+Used by:      app/agent/loop.py, app/agent/cli.py.
+              tests: test_step13_store.py, test_step14_agent_loop.py.
+              Planned: Step 16 backend API.
 Uses:         the standard library only (sqlite3, json, uuid, datetime, dataclasses).
               No other project file.
 Main parts:   ChatStore - new_chat, exists, add_step, load_steps.

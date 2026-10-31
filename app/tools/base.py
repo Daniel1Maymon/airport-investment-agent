@@ -10,7 +10,7 @@ Used by:      app/tools/find.py, app/tools/rank.py, app/tools/profile.py,
               tests: test_step08_tool_base.py, test_step09_resolver.py,
               test_step10_rank_profile.py, test_step11_trend_routes_delays.py,
               test_step12_unmet_info_live.py.
-              Planned: the Step 14 agent loop.
+              app/agent/loop.py (run_tool, tool_specs_for_ai); test_step14_agent_loop.py.
 Uses:         app/measures.py (MEASURES), app/refusals.py (REFUSALS),
               app/tools/resolver.py (resolve_airport, which reads the airports table).
 Main parts:   US_STATES - the 50 states + DC.
