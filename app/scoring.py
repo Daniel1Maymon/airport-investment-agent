@@ -5,9 +5,8 @@ What it is:   Turns each of the six scored measures into a percentile grade from
               the grades gives the final score.
 Why we need:  compute_measures() (app/measures.py) gives raw numbers in different units
               (fractions, minutes, departures). They can only be added up on one scale.
-Used by:      tests: test_step07_scoring.py only, so far.
-              Planned: Step 10 tools `rank_airports` and `airport_profile`
-              (app/tools/rank.py, app/tools/profile.py).
+Used by:      app/tools/rank.py (`rank_airports`), app/tools/profile.py (`airport_profile`).
+              tests: test_step07_scoring.py, test_step10_rank_profile.py.
 Uses:         the dict from compute_measures(), passed in by the caller. No database and
               no project imports.
 Main parts:   DEFAULT_WEIGHTS - weight key (D1..S4) -> weight; they total 100.
