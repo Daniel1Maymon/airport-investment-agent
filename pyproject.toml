@@ -1,0 +1,11 @@
+[project]
+name = "airport-investment-agent"
+version = "0.1.0"
+requires-python = "==3.12.*"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "realdata: uses the real airports.duckdb; skipped when that file is missing (run with: pytest -m realdata)",
+]
