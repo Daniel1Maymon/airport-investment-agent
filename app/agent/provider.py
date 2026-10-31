@@ -52,14 +52,22 @@ class AIReply:
 
 
 class AIProvider:
-    """Send messages and tools to an AI, get one reply."""
+    """Send messages and tools to an AI, get one reply.
+
+    This is only the shape every provider must have. The loop talks to this shape, so
+    the real OpenRouter provider and the fake test provider can be swapped freely.
+    """
 
     def send(self, messages, tools, max_tokens):
         raise NotImplementedError
 
 
 def _args(text):
-    """The tool settings as a dict; text that is not JSON is kept as it is (P56)."""
+    """The tool settings as a dict; text that is not JSON is kept as it is (P56).
+
+    The AI sends tool settings as text, e.g. '{"airports": ["SFO"]}'. If the AI writes
+    broken text, we keep it as it is; the tool check then returns an error the AI can read.
+    """
     try:
         return json.loads(text)
     except (TypeError, ValueError):
@@ -74,28 +82,36 @@ class OpenRouterProvider(AIProvider):
             raise ValueError("OpenRouter needs an API key and a model name.")
         self.api_key = api_key
         self.model = model
+        # Tests can pass their own HTTP client; normally we make a real one.
         self.client = client if client is not None else httpx.Client(timeout=TIMEOUT_SECONDS)
 
     def send(self, messages, tools, max_tokens):
+        # What we send: which model, the chat so far, the tool menu, and the length limit.
         body = {"model": self.model, "messages": messages, "tools": tools, "max_tokens": max_tokens}
         try:
             response = self.client.post(
                 OPENROUTER_URL, headers={"Authorization": f"Bearer {self.api_key}"}, json=body
             )
         except httpx.HTTPError as exc:
+            # No reply at all: network down, or no answer within 45 seconds.
             raise AIUnavailable(f"OpenRouter call failed: {type(exc).__name__}") from exc
+        # 402 = out of credit, 429 = too many requests. Both mean "try later", not a bug.
         if response.status_code in (402, 429):
             raise QuotaReached(f"OpenRouter quota reached (HTTP {response.status_code})")
         if response.status_code >= 400:
             raise AIUnavailable(f"OpenRouter error (HTTP {response.status_code})")
+        # Read the reply. Any unexpected shape becomes AIUnavailable, never a crash.
         try:
             data = response.json()
-            choice = data["choices"][0]
+            choice = data["choices"][0]  # we ask for one reply, so there is one choice
             message = choice["message"]
+            # The tools the AI asks for, in our simple shape {id, name, args}.
+            # The id links each tool result back to its request.
             calls = [
                 {"id": c["id"], "name": c["function"]["name"], "args": _args(c["function"]["arguments"])}
                 for c in message.get("tool_calls") or []
             ]
+            # Token counts and price of this one call, as OpenRouter reports them.
             usage = data.get("usage") or {}
             return AIReply(
                 text=message.get("content"),

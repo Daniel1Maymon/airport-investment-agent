@@ -13,6 +13,9 @@ class FakeProvider(AIProvider):
     Each script item is an `AIReply` (returned) or an exception (raised), in order.
     Running out of script fails the test. `calls` holds a deep copy of
     `(messages, tools, max_tokens)` of every call, in order.
+
+    Example: FakeProvider([reply_asking_for_a_tool, final_text_reply]) makes the loop
+    run one tool round and then finish, and the test can check what the loop sent.
     """
 
     def __init__(self, script):
