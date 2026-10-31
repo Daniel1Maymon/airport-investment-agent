@@ -11,6 +11,8 @@ from typing import Annotated, Literal, NamedTuple, get_args, get_origin
 from pydantic import BaseModel, BeforeValidator, Field, ValidationError
 
 from app.measures import MEASURES
+from app.refusals import REFUSALS
+from app.tools.resolver import resolve_airport
 
 # The 50 states + DC. A fixed list in code, not read from the database, so a
 # state with no airport in our data is still a valid (empty) answer.
@@ -30,6 +32,24 @@ class Allowed(NamedTuple):
     values: list
 
 
+class _AirportNames:
+    """Marker on a setting type: its values are airport names or codes that
+    `run_tool` turns into codes before the tool runs (P28)."""
+
+
+AIRPORT_NAMES = _AirportNames()
+
+
+class SettingsError(ValueError):
+    """Raised by a settings model's own check (one that looks at several settings
+    together); `run_tool` turns it into an error with these allowed values."""
+
+    def __init__(self, message, allowed=()):
+        super().__init__(message)
+        self.message = message
+        self.allowed = list(allowed)
+
+
 def _upper(value):
     """Accept "ca" as "CA"; leave non-text alone so pydantic reports the wrong type."""
     return value.upper() if isinstance(value, str) else value
@@ -38,8 +58,9 @@ def _upper(value):
 # Shared setting types. Tools use them in their settings models, e.g. `top_n: TopN = 10`.
 # Literal gives the AI the full list of choices in the tool description (JSON schema).
 TopN = Annotated[int, Field(ge=1, le=25), Allowed([1, 25])]
-# Only the count is checked here; whether a code is a real airport is Step 9.
-AirportList = Annotated[list[str], Field(min_length=1, max_length=5), Allowed([1, 5])]
+# Airport names or codes; run_tool turns each into one code from our list (P28).
+AirportList = Annotated[list[str], Field(min_length=1, max_length=5), Allowed([1, 5]), AIRPORT_NAMES]
+AirportCode = Annotated[str, Field(min_length=1, max_length=100), AIRPORT_NAMES]
 State = Annotated[Literal[US_STATES], BeforeValidator(_upper)]
 StateList = Annotated[list[State], Allowed(sorted(US_STATES))]
 MeasureName = Annotated[Literal[tuple(MEASURES)], Allowed(sorted(MEASURES))]
@@ -91,16 +112,26 @@ def _error(message, allowed):
     return {"error": message, "allowed": list(allowed)}
 
 
-def _setting_error(model, error):
-    """Turn the first pydantic error into a plain-English error with allowed values."""
-    setting = str(error["loc"][0]) if error["loc"] else "settings"
-    field = model.model_fields.get(setting)
-    metadata = list(field.metadata) if field else []
+def _markers(field):
+    """Every marker on a setting's type, also when it is wrapped as optional."""
+    if field is None:
+        return []
+    metadata = list(field.metadata)
     # For an optional setting (`StateList | None`), the marker sits inside the union's Annotated member.
-    for member in get_args(field.annotation) if field else ():
+    for member in get_args(field.annotation):
         if get_origin(member) is Annotated:
             metadata.extend(get_args(member)[1:])
-    markers = [m for m in metadata if isinstance(m, Allowed)]
+    return metadata
+
+
+def _setting_error(model, error):
+    """Turn the first pydantic error into a plain-English error with allowed values."""
+    own = (error.get("ctx") or {}).get("error")
+    if isinstance(own, SettingsError):
+        return _error(own.message, own.allowed)
+    setting = str(error["loc"][0]) if error["loc"] else "settings"
+    field = model.model_fields.get(setting)
+    markers = [m for m in _markers(field) if isinstance(m, Allowed)]
     allowed = markers[0].values if markers else []
     if error["type"] == "literal_error":
         reason = "this value is not one of the allowed values"
@@ -136,7 +167,46 @@ def run_tool(con, name, settings):
     except ValidationError as exc:
         return _setting_error(model, exc.errors()[0])
 
+    checked, error = _names_to_codes(con, checked)
+    if error:
+        return error
+
     return tool.fn(con, checked).to_dict()
+
+
+def _one_code(con, setting, text):
+    """(code, None) when `text` is exactly one airport, else (None, error)."""
+    matches = resolve_airport(con, text)
+    if len(matches) == 1:
+        return matches[0].iata, None
+    if not matches:
+        return None, _error(f"{REFUSALS['airport_not_found']} (setting '{setting}': '{text}')", [])
+    return None, _error(
+        f"'{text}' in setting '{setting}' matches several airports. Pick one of the allowed codes.",
+        [m.iata for m in matches],
+    )
+
+
+def _names_to_codes(con, checked):
+    """Turn airport names into codes in the settings typed AirportList or AirportCode.
+
+    Runs after the pydantic checks, and only on settings the caller sent
+    (never `states`, where "LA" is Louisiana). Returns (settings, error).
+    """
+    updates = {}
+    for setting, field in type(checked).model_fields.items():  # fixed order, so errors are repeatable
+        value = getattr(checked, setting)
+        if setting not in checked.model_fields_set or value is None or AIRPORT_NAMES not in _markers(field):
+            continue
+        texts = value if isinstance(value, list) else [value]
+        codes = []
+        for text in texts:
+            code, error = _one_code(con, setting, text)
+            if error:
+                return checked, error
+            codes.append(code)
+        updates[setting] = codes if isinstance(value, list) else codes[0]
+    return checked.model_copy(update=updates), None
 
 
 def tool_specs_for_ai():
