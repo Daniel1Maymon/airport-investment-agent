@@ -177,6 +177,7 @@ The design docs didn't fix these details. They are written here so every session
 | P19 | Flags (exact text) | `"planes over 85% full"` when `load_factor > 0.85`; `"NAS delays in the top 10% nationally"` when the `nas_delay_per_flight` grade ≥ 90; `"scored without delay data"` (P16). No other flags. Order: as listed here. |
 | P20 | Custom weights | A dict given to `score_airports` replaces `DEFAULT_WEIGHTS`; keys it leaves out count as 0. `WeightsError` if a key is not D1…S4, a value is negative, or the total is not 100. |
 | P21 | Order, rank, size filter | Kept: `enplanements` is not `None` and ≥ `min_enplanements`. Sorted by `final_score` high to low, ties by IATA code A→Z; `rank` = 1, 2, 3 … in that order. |
+| P22 | No final score | With custom weights an airport may have no value for any weighted measure (e.g. `{"D1": 100}` and no 2019 traffic). Its `final_score` is `None` (as P18 for the halves) and it is placed last, still ordered by IATA code. Added in Step 7, pending the user's approval. |
 
 ---
 
