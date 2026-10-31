@@ -176,3 +176,41 @@ BOS is the clean case: 100 seats per departure on every row, so missing flights 
 - LAX international share: MEX route 10 of 30 passenger departures = **33.3%**; long-haul share **0%**.
 - Every other airport: long-haul 0%, international 0%, cargo 0%.
 - Top airline share: BOS 50% (B6 and DL tie, 20 of 40); LAX AA 40 of 60 = 66.7%; ANC 50% (AS and DL tie, 20 of 40 passenger departures); MHT, BTV, BHB, SNA 100%.
+
+## Step 3 sample: t100_sample.zip
+
+`tests/fixtures/raw/t100_sample.zip` is a made-up BTS T-100 download, built by `tests/fixtures/make_t100_sample.py` (`.venv/bin/python -m tests.fixtures.make_t100_sample`). It copies the real file's format: the zip holds `Documentation.csv` (field list) and `T_T100_SEGMENT_ALL_CARRIER.csv`; CRLF line endings; the 6 number columns written as `10.00`; quotes around a carrier name with a comma; empty state for foreign airports. It is separate from the tiny database above. All rows are year 2025.
+
+| Row | Sched | Performed | Seats | Pass. | Freight | Dist. | Carrier | Route | Dest country | Month | Note |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| R1 | 10 | 10 | 1,000 | 800 | 0 | 187 | B6 | BOS→JFK | US | 1 | |
+| R2 | 10 | 10 | 1,000 | 900 | 0 | 187 | B6 | JFK→BOS | US | 1 | |
+| R3 | 20 | 20 | 3,000 | 2,500 | 0 | 2,611 | AA | LAX→BOS | US | 1 | |
+| R4 | 20 | 20 | 3,000 | 2,400 | 0 | 2,611 | AA | BOS→LAX | US | 1 | |
+| R5 | **12** | **10** | 1,500 | 1,200 | 500 | 372 | AS | SNA→SFO | US | 2 | scheduled ≠ performed; passengers and freight |
+| R6 | 10 | 10 | 1,500 | 1,300 | 0 | 372 | AS | SFO→SNA | US | 2 | |
+| R7 | 5 | 5 | 0 | 0 | 100,000 | 5,063 | 5X | ANC→HKG | **HK** | 3 | cargo, foreign destination, empty dest state |
+| R8 | 5 | 5 | 0 | 0 | 80,000 | 5,063 | 5X | HKG→ANC | US | 3 | cargo, foreign origin |
+| R9 | 4 | 4 | 0 | 0 | 40,000 | 1,448 | FX | ANC→SEA | US | 3 | cargo |
+| R10 | 2 | 2 | 40 | 30 | 0 | 17 | F4 | CPX→VQS | US | 8 | carrier name `"Air Charter, Inc d/b/a Air Flamenco"` |
+| R11 | 8 | 8 | 800 | 600 | 0 | 184 | DL | BOS→LGA | US | 4 | identical to R12 |
+| R12 | 8 | 8 | 800 | 600 | 0 | 184 | DL | BOS→LGA | US | 4 | identical to R11 |
+| R13 | 0 | 0 | 0 | 0 | 0 | 0 | 4W | FAI→FAI | US | 3 | all zero, like the real Warbelow line |
+| R14 | 6 | 6 | 900 | 700 | 0 | 1,846 | UA | SFO→ORD | US | 5 | |
+| R15 | 6 | 6 | 900 | 800 | 0 | 1,846 | UA | ORD→SFO | US | 5 | |
+| R16 | 4 | 4 | 1,000 | 900 | 2,000 | 5,451 | JL | LAX→NRT | **JP** | 6 | passenger flight abroad |
+| R17 | 12 | 12 | 1,800 | 1,500 | 0 | 236 | WN | SNA→SJC | US | 7 | |
+| R18 | 12 | 12 | 1,800 | 1,600 | 0 | 236 | WN | SJC→SNA | US | 7 | |
+| R19 | 3 | 3 | 300 | 0 | 0 | 1,448 | AS | SEA→ANC | US | 9 | seats but no passengers |
+| R20 | 5 | 5 | 500 | 400 | 0 | 187 | B6 | BOS→JFK | US | 12 | |
+
+**Hand-worked totals (20 rows):**
+- Passengers: 800 + 900 + 2,500 + 2,400 + 1,200 + 1,300 + 0 + 0 + 0 + 30 + 600 + 600 + 0 + 700 + 800 + 900 + 1,500 + 1,600 + 0 + 400 = **16,230**.
+- Departures performed: 10+10+20+20+10+10+5+5+4+2+8+8+0+6+6+4+12+12+3+5 = **160** (scheduled would give 162).
+- Seats: 1,000+1,000+3,000+3,000+1,500+1,500+0+0+0+40+800+800+0+900+900+1,000+1,800+1,800+300+500 = **19,840**.
+- Freight: 500 + 100,000 + 80,000 + 40,000 + 2,000 = **222,500** lbs.
+- `is_passenger` true: R1–R6, R10–R12, R14–R18, R20 = **15**; false: R7, R8, R9, R13, R19 = **5**.
+- `dest_country`: US 18, HK 1 (R7), JP 1 (R16).
+- Duplicate pair R11 + R12: 2 rows, 600 + 600 = 1,200 passengers.
+
+The two-zip test adds a 2024 zip built in `tmp_path` (3 rows: B6 BOS→JFK 100 passengers, AA LAX→BOS 200, 5X ANC→HKG cargo 0): 3 rows, **300** passengers.
