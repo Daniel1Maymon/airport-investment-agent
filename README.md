@@ -11,7 +11,7 @@ never writes SQL and never makes up a number.
 
 > **Try it live:** <https://airport-investment-agent.vercel.app>
 >
-> **Status:** built and online (Steps 0–18 of the
+> **Status:** built and online (Steps 0–19 of the
 > [implementation plan](docs/implementation-plan.md)). The chat page runs on
 > Vercel; the backend runs on Railway at
 > <https://backend-production-09fa.up.railway.app> (`GET /health`). The short
@@ -254,6 +254,28 @@ Other ways to ask questions:
   `.venv/bin/python -m scripts.smoke_test https://backend-production-09fa.up.railway.app`
 
 Details: [implementation plan](docs/implementation-plan.md) P117–P121.
+
+## Admin dashboard
+
+A private page for the site owner at
+<https://airport-investment-agent.vercel.app/admin.html> (it asks for the
+`ADMIN_TOKEN` key). It shows usage and cost, refusals, which tools the AI
+picks, every question with its answer, and one switch that turns the AI off.
+Details: [docs/admin-dashboard.md](docs/admin-dashboard.md).
+
+**The AI switch and the totals:** questions, chats, visitors, refusal rate,
+cost, tokens and answer time.
+
+![Admin dashboard: the AI switch and the totals](docs/images/admin-overview.png)
+
+**Refusals by cause and the tools the AI picked:**
+
+![Admin dashboard: refusals by cause and tools the AI picked](docs/images/admin-refusals-tools.png)
+
+**Recent questions:** 30 per page, newest first; click a column name to sort,
+click a row to see the answer and how it was found.
+
+![Admin dashboard: recent questions](docs/images/admin-recent-questions.png)
 
 ## Docs
 
