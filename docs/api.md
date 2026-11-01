@@ -2,6 +2,7 @@
 
 The chat page (Vercel) talks to the backend (Railway) through three addresses. Decisions: [decisions.md](decisions.md) (7.22, 7.23). What happens inside one turn: [agent.md](agent.md).
 
+
 ## 1. `POST /chat`: send a message, get the answer
 
 Request:
@@ -12,6 +13,8 @@ Request:
 ```
 
 `conversation_id` is left out on the first message; the backend starts a new chat and returns its ID. The page keeps only this ID, plus a list of its own past chat IDs with their first questions for the "Your chats" panel (P109). Opening a past chat uses address 2.
+
+`visitor_id` is optional: a random ID the page makes once per browser and keeps in `localStorage` (decisions 7.26). It is only saved in the admin log (`chat_events`). A missing or odd value (not 8–64 letters, digits or `-`) is saved as empty; it never refuses the question.
 
 `language` is optional: `"en"` (the default) or `"he"`. With `"he"` the AI writes the answer in Hebrew (P106). Any other value is a bad request (400).
 
@@ -55,6 +58,47 @@ Unknown ID → `turns` = `[]` and the "chat not found" refusal. Details: impleme
 
 Returns `{"status": "ok"}` when the server is up and the airport database opens; otherwise HTTP 503 and `{"status": "error"}`. Railway calls it to check the server.
 
+## 4. Admin addresses
+
+For the admin dashboard only ([admin-dashboard.md](admin-dashboard.md)). Every request needs the header `Authorization: Bearer <ADMIN_TOKEN>`. A missing or wrong token, or no `ADMIN_TOKEN` setting on the server, gives **401** and `{"detail": "unauthorized"}`. Details: implementation plan P122–P141.
+
+**`GET /admin/metrics`**
+
+```json
+{ "questions": 127, "chats": 99, "visitors": 12,
+  "cost_usd": 0.1524, "cost_per_question_usd": 0.0012,
+  "input_tokens": 410000, "output_tokens": 38000,
+  "events_since": "2026-11-02T09:00:00+00:00",
+  "requests": 40, "refusal_rate": 0.075,
+  "duration_p50_ms": 7400, "duration_p95_ms": 19100,
+  "questions_per_day": [ { "day": "2026-11-01", "count": 12 } ],
+  "refusals_by_cause": [ { "cause": "airport_not_found", "count": 2 } ],
+  "tools": [ { "name": "rank_airports", "count": 31 } ] }
+```
+
+*(Numbers are examples of the format only.)* `questions_per_day` has 30 entries, oldest first, including days with 0. `refusals_by_cause` and `tools` are sorted by count, highest first. `events_since` is the time of the first `chat_events` row (empty when there is none); `requests`, `refusal_rate` and the two durations count only from then. `visitors` = different visitor IDs in `chat_events` (requests without one are not counted). `refusal_rate` = refused ÷ requests (errors not counted as refusals); 0 when there are no requests. `cost_per_question_usd` is 0 when there are no questions.
+
+**`GET /admin/events?limit=30&offset=0&sort=time&order=desc`**: the questions of all chats, one page at a time. `limit` is 1–500 (default 100); `offset` (default 0) skips that many of the newest questions first, so the admin page asks for `offset=0`, `30`, `60`, … `sort` is `time` (the default), `visitor`, `chat`, `question`, `result`, `tools` or `cost`; `order` is `asc` or `desc` (the default); the admin page always opens with `time`, `desc` (newest first). All questions are sorted before the page is cut, so page 2 continues page 1. Equal values stay newest first; empty values (no visitor, no tools) go last either way. Anything else is **400**. `total` is how many questions there are in all.
+
+```json
+{ "events": [ { "time": "2026-11-02T09:14:03+00:00",
+                "conversation_id": "c7f3a9e2-…",
+                "visitor_id": "3f2b8c1e-…",
+                "question": "Compare congestion at LAX and SNA",
+                "answer": "LAX is more crowded …",
+                "refusal_cause": null,
+                "steps": [ "Compared airports (airports: LAX, SNA)" ],
+                "tools": [ "airport_profile" ],
+                "cost_usd": 0.0014 } ],
+  "total": 136 }
+```
+
+`visitor_id` is the visitor of that chat (from its newest log row with one); empty for chats from before visitor IDs. `refusal_cause` is set when the saved answer is one of the fixed refusal messages (then `answer` holds that message). `steps` are built with the same rules as the chat reply (P88). `tools` lists the tool names the AI asked for in that turn, in order; a tool asked for twice (for example after a failed first try) is listed twice.
+
+**`GET /admin/ai`**: `{"enabled": true, "updated_at": null, "note": null}`. No saved row → `enabled` is `true`.
+
+**`POST /admin/ai`** with `{"enabled": false, "note": "cost check"}`: saves the wanted state (not a flip) and returns the same shape as `GET /admin/ai`. `enabled` must be `true` or `false`; `note` is optional, at most 200 characters; anything else is **400**. While `enabled` is `false`, `POST /chat` gives the `ai_unavailable` refusal before any AI call.
+
 ## HTTP codes
 
 - **200** for every answer and every refusal (the page shows `refusal.message` when it is set).
@@ -67,7 +111,7 @@ Details: implementation plan P80–P87.
 
 - **The whole answer at once (no streaming).** A turn with 2–3 tools takes about 5–20 seconds; the page shows "Working…" until the reply arrives. Streaming the text word by word is future work.
 - **One message at a time per chat.** The page disables Send while waiting. If a second message for the same chat arrives anyway (e.g. a double click), the backend refuses it with "still answering your last question". One server, so an in-memory lock per chat is enough.
-- **Only our Vercel page may call the backend** (CORS).
+- **Only our Vercel page may call the backend** (CORS). The same address serves the chat page and the admin page; the browser may send the `Content-Type` and `Authorization` headers.
 - **Question length:** at most 1,000 characters, refused before the AI sees it.
 - **Answer length:** the AI is told to write at most about 800 words per answer, and each AI call has a token limit (4,000 tokens, which leaves room for the model's hidden "thinking"). Enough for a comparison with its caveats; too short to make the app a free writing tool. If an answer still reaches the limit, a fixed note says it was cut off (implementation plan P61, P68).
 - **Time limit:** a whole turn may take at most 60 seconds; after that the "internal error" message is returned.
