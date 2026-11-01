@@ -100,3 +100,30 @@ seq 4  assistant  "SFO is short of about 150,000 to 1,060,000 seats a year ..."
 A follow-up adds steps 5, 6, … and the AI sees steps 1–4, including the SFO numbers.
 
 No automatic deletion of old chats in version 1.
+
+## Part 3: admin data (`chat.sqlite`)
+
+Two small tables in the same file, for the admin dashboard ([admin-dashboard.md](admin-dashboard.md)). Added with `CREATE TABLE IF NOT EXISTS`, so they appear on the first start after the deploy; `conversations` and `messages` are not changed. Decisions: [decisions.md](decisions.md) 7.26.
+
+**`chat_events`**: one row per `POST /chat` request, also for requests refused before the agent ran. The question text is not stored here.
+
+| Column | Example | Meaning |
+|---|---|---|
+| `id` (PK) | 412 | Counts up |
+| `created_at` | 2026-11-02T09:14:03+00:00 | When the request arrived (UTC) |
+| `conversation_id` | `c7f3a9e2-…` or empty | The chat, when there is one (empty for a refusal before a new chat was made) |
+| `outcome` | `answered` / `refused` / `error` | `error` = a crash or the 60-second limit |
+| `cause` | `airport_not_found`, `timeout`, `crash`, or empty | The refusal cause (a key of the refusal messages), or what went wrong for `error` |
+| `duration_ms` | 8120 | From the request arriving to the reply leaving |
+| `language` | `en` / `he` | The answer language asked for |
+
+**`app_settings`**: settings the owner changes while the site runs.
+
+| Column | Example | Meaning |
+|---|---|---|
+| `key` (PK) | `ai_enabled` | Version 1 has only this key |
+| `value` | `"false"` | Stored as text |
+| `updated_at` | 2026-11-02T10:00:00+00:00 | When it was last set |
+| `note` | `cost check` | Optional reason, at most 200 characters |
+
+No `ai_enabled` row means the AI is ON.

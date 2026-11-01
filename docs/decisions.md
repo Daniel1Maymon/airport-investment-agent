@@ -324,10 +324,27 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 
 **Why:** a review of the first full question run (7.21) showed that the numbers were right, but the explanations often were not: the AI read some grades the wrong way round, named the wrong cause of a score, named months as above the target that were not, and added facts no tool returned. Each of these is a small calculation or reading the AI did by itself. Moving them into Python makes them deterministic and tested, the same rule as for every number (Python does the numbers, the AI explains).
 
+### 7.26 Admin dashboard
+**Decision:** a private page, `web/admin.html`, behind a password (`ADMIN_TOKEN`), showing usage, cost, refusals, answer times, the tools the AI picked, the recent questions with their answers, and one switch that turns the AI off. It reads `chat.sqlite` only, plus two small new tables: a log row per chat request (`chat_events`) and the switch (`app_settings`). Four new addresses under `/admin`. Details: [admin-dashboard.md](admin-dashboard.md). Approved 2026-11-01.
+
+**Why:** once the agent is public, three questions matter: what it costs, what real people ask, and whether the AI picks the right tools. The data for most of this is already saved for conversation memory (7.9), so the dashboard costs little. Tool usage is the measure specific to this agent: it shows whether the nine general tools (7.16) cover real questions. The switch is a fast way to stop spending without a redeploy.
+
+**Options considered:**
+- *Refusal rate from `messages` only (no new table).* Rejected: refusals that happen before the agent runs (a question too long, "still answering", no AI key) and timeouts are never saved there, so the rate would look better than it is.
+- *Store visitors' IP addresses and countries.* Rejected: not needed for these three questions, personal data, and a country needs an outside lookup service.
+- *A ready-made dashboard tool or a chart library.* Rejected: plain HTML and JavaScript like the chat page (7.5) is enough for a handful of numbers and bars, with nothing new to install.
+
+**Safety:** the password fails closed (no `ADMIN_TOKEN` setting → every admin request refused), the switch saves the wanted state rather than a flip, and a failure in the dashboard's code can never stop a chat answer.
+
+### 7.27 Changing the live site safely
+**Decision:** changes to the deployed site follow fixed rules: nothing is deployed without the user's yes; the existing tests pass unchanged; a full run on the laptop first (smoke test and the four exam questions); the current live versions are written down before each deploy so they can be restored with one command; and the smoke test and the four questions run on the live site right after. New data is only added, never changed or removed. Details: [admin-dashboard.md](admin-dashboard.md), "Keeping the live site safe". Approved 2026-11-01.
+
+**Why:** the live link is already being used by people outside the project. Both parts are deployed from the laptop by command, never automatically from GitHub (7.4), so work in git cannot change the live site by accident; these rules cover the moment it is changed on purpose.
+
 ---
 
 ## 8. Open decisions
 
-None left in the design. Implementation is planned in small, reviewed parts (0.2): 20 steps, each built test-first, in [implementation-plan.md](implementation-plan.md). Small implementation details (P1–P22, e.g. how percentile ties are graded) are decided there.
+None left in the design. Implementation is planned in small, reviewed parts (0.2): 21 steps (the admin dashboard, 7.26, was added as Step 19 on 2026-11-01), each built test-first, in [implementation-plan.md](implementation-plan.md). Small implementation details (P1–P22, e.g. how percentile ties are graded) are decided there.
 
 **Accepted gap:** terminal size and gate counts have no public source. Runways and traffic are used as stand-ins (runway load, measure S4 in [scoring.md](scoring.md)), and answers say so.
