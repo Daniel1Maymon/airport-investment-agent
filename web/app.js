@@ -132,6 +132,33 @@ const methodEl = document.getElementById("method");
 
 let busy = false;
 
+// ---------- Visitor ID: one random ID per browser, for the admin numbers only ----------
+// Made once and kept in localStorage, so every chat from this browser has the same ID.
+// "New chat" does not change it. It is a random number: no name, no place, no IP address.
+// If storage is blocked, the ID lasts until the page is reloaded.
+
+let visitorId = null;
+
+function getVisitorId() {
+  if (visitorId) return visitorId;
+  try {
+    visitorId = localStorage.getItem("visitorId");
+  } catch (e) {
+    visitorId = null;
+  }
+  if (!visitorId) {
+    visitorId = window.crypto && crypto.randomUUID
+      ? crypto.randomUUID()
+      : "v-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+    try {
+      localStorage.setItem("visitorId", visitorId);
+    } catch (e) {
+      // storage blocked: keep the ID for this page load only
+    }
+  }
+  return visitorId;
+}
+
 // ---------- Chat ID in localStorage (the page still works if storage is blocked) ----------
 
 function getChatId() {
@@ -582,7 +609,7 @@ async function send() {
   turn.scrollIntoView({ block: "start" });
 
   // P106: the page language; "he" makes the backend ask the AI for a Hebrew answer.
-  const body = { message: text, language: lang };
+  const body = { message: text, language: lang, visitor_id: getVisitorId() };
   const id = getChatId();
   if (id) body.conversation_id = id;
   const reply = await callBackend("/chat", {

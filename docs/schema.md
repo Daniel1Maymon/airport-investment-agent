@@ -116,6 +116,7 @@ Two small tables in the same file, for the admin dashboard ([admin-dashboard.md]
 | `cause` | `airport_not_found`, `timeout`, `crash`, or empty | The refusal cause (a key of the refusal messages), or what went wrong for `error` |
 | `duration_ms` | 8120 | From the request arriving to the reply leaving |
 | `language` | `en` / `he` | The answer language asked for |
+| `visitor_id` | text | The random ID the chat page keeps per browser (letters, digits, `-`; 8–64 characters), or empty when missing or odd. Added after the first build: an older table gets the column on start-up, its rows kept |
 
 **`app_settings`**: settings the owner changes while the site runs.
 

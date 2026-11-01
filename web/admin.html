@@ -1,0 +1,203 @@
+<!doctype html>
+<!--
+What:       The private admin page of the US Airport Investment Agent (Step 19).
+Why:        The owner needs to see what the agent costs, what people ask and what they got,
+            how often it refuses, how long answers take, which tools the AI picks, and needs
+            one switch that stops all AI calls at once.
+Used by:    The owner's browser. Served as a plain file next to the chat page (locally on
+            port 5500, online by Vercel at /admin.html). Not linked from the chat page.
+Uses:       admin.js (all the behaviour). No library, no CDN, no build tool, no external fonts.
+            The same colours and fonts as the chat page (index.html).
+Main parts: the login box; the header (name, Refresh, Log out); the AI switch; the number
+            cards; questions per day (30 bars); refusals by cause; tools the AI picked; the
+            recent questions table (a click opens the answer and its steps).
+Design:     docs/admin-dashboard.md; implementation plan P136-P138, P141.
+            noindex keeps search engines away; the token is the real protection (P124).
+            Readable at phone width (375 px): 16 px side margins, cards wrap, the questions
+            table scrolls sideways inside its own box.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Admin - US Airport Investment Agent</title>
+  <style>
+    :root {
+      --ink: #1b1f24;        /* text */
+      --muted: #676f7a;      /* secondary text */
+      --faint: #9aa1ab;      /* hints */
+      --paper: #ffffff;      /* page */
+      --bubble: #f1f2f4;     /* card background, hover */
+      --line: #e4e6ea;       /* borders */
+      --black: #000000;      /* Deloitte black */
+      --green: #86bc25;      /* Deloitte green: bars, the ON state */
+      --green-dark: #26890d; /* darker Deloitte green: links, focus */
+      --warn-bg: #f3f8e9; --warn-ink: #2f4a0a;
+      --off-bg: #fdecea; --off-ink: #8a1c12; /* the OFF state and errors */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--paper); color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+    }
+    .column { width: 100%; max-width: 1000px; margin: 0 auto; padding: 0 16px; }
+    [hidden] { display: none !important; }
+
+    button { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; border-radius: 999px; border: 1px solid var(--line); background: #fff; padding: 7px 14px; }
+    button:hover:not(:disabled) { background: var(--bubble); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.danger { background: var(--black); color: #fff; border-color: var(--black); }
+    button.danger:hover:not(:disabled) { background: var(--off-ink); }
+    button:focus-visible, input:focus-visible, tr:focus-visible { outline: 3px solid rgba(134, 188, 37, 0.6); outline-offset: 2px; }
+
+    header { border-bottom: 1px solid var(--line); }
+    header .column { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+    header h1 { flex: 1 1 auto; margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
+    header h1::before { content: ""; width: 20px; height: 20px; border-radius: 6px; flex: none; background: linear-gradient(135deg, var(--green) 0 50%, var(--black) 50% 100%); }
+    .header-actions { display: flex; gap: 6px; }
+
+    .message { margin: 16px 0; padding: 10px 14px; border-radius: 12px; background: var(--off-bg); color: var(--off-ink); }
+
+    /* ---------- Login ---------- */
+    #login { max-width: 360px; margin: 80px auto; padding: 0 16px; }
+    #login h2 { font-size: 22px; margin: 0 0 12px; }
+    #login form { display: flex; flex-direction: column; gap: 10px; }
+    #login input { font: inherit; font-size: 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; width: 100%; }
+
+    /* ---------- Dashboard ---------- */
+    section { margin: 24px 0; }
+    h2 { font-size: 17px; margin: 0 0 10px; }
+    .note { font-size: 12.5px; color: var(--muted); }
+
+    .switch { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; background: var(--warn-bg); color: var(--warn-ink); }
+    .switch.off { background: var(--off-bg); color: var(--off-ink); }
+    .switch-state { flex: 1 1 200px; font-weight: 650; }
+    .switch-state .note { display: block; font-weight: 400; color: inherit; }
+    .switch-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .card { background: var(--bubble); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+    .card-label { font-size: 12.5px; color: var(--muted); }
+    .card-value { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+    .card .note { display: block; }
+
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+
+    /* Bars: plain boxes whose width is the count's share of the largest count (P137). */
+    .bars { display: flex; flex-direction: column; gap: 4px; }
+    .bar-row { display: grid; grid-template-columns: minmax(0, 9em) minmax(0, 1fr) 3.5em; align-items: center; gap: 8px; font-size: 13px; }
+    .bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { height: 12px; background: var(--bubble); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--green); border-radius: 999px; }
+    .bar-count { text-align: end; font-variant-numeric: tabular-nums; }
+    .days .bar-row { grid-template-columns: 6.5em minmax(0, 1fr) 3em; font-size: 12px; }
+    .days .bar-track { height: 9px; }
+
+    .table-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; }
+    table { border-collapse: collapse; font-size: 13.5px; width: 100%; line-height: 1.4; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #eef0f3; text-align: start; vertical-align: top; }
+    th { background: #f7f8f9; font-weight: 600; color: #3b4450; white-space: nowrap; }
+    td.nw { white-space: nowrap; }
+    td.question { min-width: 16em; max-width: 32em; overflow-wrap: anywhere; }
+    td.num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td.id { font-family: ui-monospace, Menlo, monospace; font-size: 0.85em; white-space: nowrap; }
+    button.sort { all: unset; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    button.sort:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+    .pager { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+    #page-numbers { display: flex; flex-wrap: wrap; gap: 4px; }
+    #page-numbers button { min-width: 2.4em; }
+    #page-numbers button[aria-current="page"] { background: #1f2a2e; color: #fff; border-color: #1f2a2e; }
+    #page-numbers .gap { padding: 0 4px; }
+    td.tools { font-family: ui-monospace, Menlo, monospace; font-size: 0.85em; max-width: 16em; overflow-wrap: anywhere; }
+    tr.row { cursor: pointer; }
+    tr.row:hover { background: #fafbfb; }
+    tr.detail td { background: #fafbfb; }
+    .detail-box { max-width: 70ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .detail-box h3 { font-size: 13px; margin: 10px 0 2px; }
+    .detail-box ul { margin: 0; padding-inline-start: 18px; white-space: normal; }
+    .refused { color: var(--off-ink); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- 1. Login: the only thing shown without a token (P138). -->
+  <div id="login">
+    <h2>Admin login</h2>
+    <form id="login-form">
+      <label for="token-input" class="note">Admin token</label>
+      <input id="token-input" type="password" autocomplete="current-password" required>
+      <button type="submit" class="danger">Log in</button>
+    </form>
+    <p id="login-message" class="message" hidden></p>
+  </div>
+
+  <!-- 2. The dashboard, shown after a good token. -->
+  <div id="dashboard" hidden>
+    <header>
+      <div class="column">
+        <h1>Admin dashboard</h1>
+        <div class="header-actions">
+          <button id="refresh" type="button">Refresh</button>
+          <button id="logout" type="button">Log out</button>
+        </div>
+      </div>
+    </header>
+    <main class="column">
+      <p id="dash-message" class="message" hidden></p>
+
+      <section>
+        <div id="switch" class="switch">
+          <div class="switch-state"><span id="switch-text">AI answering: …</span><span id="switch-note" class="note"></span></div>
+          <div class="switch-buttons">
+            <button id="switch-off" type="button">Turn off</button>
+            <button id="switch-confirm" type="button" class="danger" hidden>Yes, turn the AI off for everyone</button>
+            <button id="switch-cancel" type="button" hidden>Cancel</button>
+            <button id="switch-on" type="button" hidden>Turn on</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div id="cards" class="cards"></div>
+      </section>
+
+      <section>
+        <h2>Questions per day (last 30 days, UTC)</h2>
+        <div id="days" class="bars days"></div>
+      </section>
+
+      <div class="two">
+        <section>
+          <h2>Refusals by cause <span id="refusals-since" class="note"></span></h2>
+          <div id="refusals" class="bars"></div>
+        </section>
+        <section>
+          <h2>Tools the AI picked</h2>
+          <div id="tools" class="bars"></div>
+        </section>
+      </div>
+
+      <section>
+        <h2>Recent questions</h2>
+        <p class="note">Click a row to see the answer and how it was found. Click a column name to sort by it; click again to flip the order.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th><button type="button" class="sort" data-sort="time">Time (UTC)</button></th><th><button type="button" class="sort" data-sort="visitor">Visitor ID</button></th><th><button type="button" class="sort" data-sort="chat">Chat ID</button></th><th><button type="button" class="sort" data-sort="question">Question</button></th><th><button type="button" class="sort" data-sort="result">Result</button></th><th><button type="button" class="sort" data-sort="tools">Tools</button></th><th><button type="button" class="sort" data-sort="cost">Cost</button></th></tr></thead>
+            <tbody id="events"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <button type="button" id="prev-page">‹ Previous</button>
+          <span id="page-numbers"></span>
+          <button type="button" id="next-page">Next ›</button>
+          <span id="page-info" class="note"></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -243,6 +243,7 @@ The exam requires follow-up questions, so the agent must remember the whole chat
 Tables: [schema.md](schema.md) (conversation database).
 
 - **One row per step, not one blob per chat.** A step is a question, a tool request, a tool result or an answer. With rows, each new step adds one row; with a blob, every turn reads and rewrites the whole chat. Rows can also be inspected with plain SQL.
+- **A step is identified by its chat ID plus its position (`seq` = 1, 2, 3 …), not by a separate message ID.** The only lookup is "all steps of chat X, in order", done on every turn because the AI must see the whole chat again; this key matches it exactly. The position is also the order the steps go back to the AI (question → tool request → tool result → answer); sorting by a time stamp instead could swap two steps saved in the same instant. Nothing points to a single step today, so a separate ID would be stored but never used. Tradeoff: a future feature that points to one answer (for example a 👍/👎 button) would use the pair, or add an ID column then; a small change.
 - **Cost per AI reply is stored** (model name, token counts, cost when OpenRouter reports it). It shows what each chat costs and feeds the "where AI is used" part of the design doc.
 - **Old chats are not deleted** in version 1. At demo size the file stays small; stated as a known limitation.
 
@@ -332,6 +333,7 @@ No dataset counts people who wanted to fly and couldn't, so it is estimated.
 **Options considered:**
 - *Refusal rate from `messages` only (no new table).* Rejected: refusals that happen before the agent runs (a question too long, "still answering", no AI key) and timeouts are never saved there, so the rate would look better than it is.
 - *Store visitors' IP addresses and countries.* Rejected: not needed for these three questions, personal data, and a country needs an outside lookup service.
+- *Count visitors by IP address (stored scrambled) or by browser fingerprint.* Rejected: one office or home network shares one IP and a phone's IP changes, so the counts are wrong both ways; a scrambled IP is still personal data; a fingerprint (screen size, fonts and so on) is a tracking method. Chosen instead (2026-11-01): a **visitor ID**, a random ID the chat page makes once per browser and keeps in the browser. It tells "how many different browsers used the agent" and groups one browser's chats. Its limit: private mode, a cleared browser or a second browser counts as a new visitor, which is fine for traffic numbers.
 - *A ready-made dashboard tool or a chart library.* Rejected: plain HTML and JavaScript like the chat page (7.5) is enough for a handful of numbers and bars, with nothing new to install.
 
 **Safety:** the password fails closed (no `ADMIN_TOKEN` setting → every admin request refused), the switch saves the wanted state rather than a flip, and a failure in the dashboard's code can never stop a chat answer.

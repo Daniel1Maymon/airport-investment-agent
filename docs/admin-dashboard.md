@@ -18,24 +18,27 @@ The dashboard answers these from data the app already saves, plus one small log 
 [ Admin login: token box ]
 ────────────────────────────────────────────────────────────────
 AI answering: ON                                    [ Turn off ]
-[Questions] [Chats] [Refusal rate] [Cost $] [Cost per question] [Tokens] [Time p50 / p95]
+[Questions] [Chats] [Visitors] [Refusal rate] [Cost $] [Cost per question] [Tokens] [Time p50 / p95]
 Questions per day (last 30 days)      ▁▃▅▂▇▁▃
 Refusals by cause                      Tools the AI picked
   airport_not_found ███                  rank_airports  ██████
   out_of_scope      ██                   unmet_demand   ███
 Recent questions
-  ▸ time | question | answered / refused (cause) | tools | cost
+  ▸ time | visitor | chat | question | answered / refused (cause) | tool names | cost
     (click a row: the answer, and the "How I got this" steps)
+  ‹ Previous  [1] 2 3 4 5  Next ›   Page 1 of 5 · 136 questions   (30 per page)
+  (click a column name to sort by it; click again to flip the order)
 ```
 
 | Part | Where the numbers come from |
 |---|---|
 | **Questions**, **Chats** | `messages` rows with role `user`; rows in `conversations` |
+| **Visitors** | different `visitor_id` values in `chat_events` (since the dashboard was deployed) |
 | **Cost**, **Tokens**, **Cost per question** | `cost_usd`, `input_tokens`, `output_tokens` on `assistant` steps; cost per question = total cost ÷ questions |
 | **Refusal rate**, **Refusals by cause**, **Time p50 / p95** | the new `chat_events` table (below). p50 = the middle time (half the questions were faster); p95 = 95 of 100 questions were faster than this |
 | **Questions per day** | `messages` rows with role `user`, grouped by day (UTC), last 30 days, days with no questions shown as 0 |
 | **Tools the AI picked** | the tool names inside `tool_calls` on `assistant` steps, counted |
-| **Recent questions** | each `user` step, with the last `assistant` text of that turn, the tool steps of that turn (built by the same `build_steps` the chat page uses) and the turn's cost |
+| **Recent questions** | 30 per page, newest first unless sorted by another column (the server sorts all questions, then cuts the page; Refresh and the page buttons keep the choice; opening or reloading the page starts again with newest first). Each `user` step, with its chat ID and the chat's visitor ID (first 8 characters; the whole ID on hover), with the last `assistant` text of that turn, the tool steps of that turn (built by the same `build_steps` the chat page uses) and the turn's cost |
 
 Everything is read from `chat.sqlite`. The airport database is not touched.
 
@@ -65,6 +68,8 @@ Why a log table at all: some refusals never reach `messages` (a question too lon
 - The token is compared with `secrets.compare_digest`, which takes the same time whether the first or the last character is wrong, so the token can't be guessed one character at a time by timing the replies.
 - The browser keeps the token in `sessionStorage` (forgotten when the tab is closed) and sends it only to the backend.
 - CORS (the browser's list of which pages may call the backend, and what they may send) must now also allow the `Authorization` header. The allowed page address stays the same one Vercel address.
+
+**Visitors.** The chat page makes a random ID once per browser (`crypto.randomUUID()`), keeps it in `localStorage`, and sends it with every question. "New chat" keeps the same ID, so one visitor's chats can be grouped. It is a random number: no name, no place. Private mode, a cleared browser or a second browser counts as a new visitor.
 
 What we don't collect: no IP addresses and no countries. The dashboard doesn't need them, they are personal data, and a country needs an outside lookup service.
 
